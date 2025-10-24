@@ -205,12 +205,13 @@ app.post('/api/license/check', async (req, res) => {
     }
 });
 
-// Fiş kayıt
+// Fiş kayıt (Detaylı log ile)
 app.post('/api/receipt/log', async (req, res) => {
     try {
         const { 
             license_key, hardware_id, company_name, receipt_no, 
-            amount, vat_rate, vat_amount, description, cashier, template 
+            amount, vat_rate, vat_amount, description, cashier, template,
+            session_id
         } = req.body;
 
         const licenseResult = await pool.query(
@@ -234,6 +235,7 @@ app.post('/api/receipt/log', async (req, res) => {
         const licenseId = licenseResult.rows[0].id;
         const userId = userResult.rows[0].id;
 
+        // Fiş kaydet
         await pool.query(
             `INSERT INTO receipts 
              (user_id, license_id, company_name, receipt_no, amount, vat_rate, vat_amount, description, cashier, template, date_printed) 
@@ -241,11 +243,13 @@ app.post('/api/receipt/log', async (req, res) => {
             [userId, licenseId, company_name, receipt_no, amount, vat_rate, vat_amount, description, cashier, template]
         );
 
+        // Kullanıcı istatistiklerini güncelle
         await pool.query(
             'UPDATE users SET total_receipts = total_receipts + 1, total_amount = total_amount + $1 WHERE id = $2',
             [amount, userId]
         );
 
+        // Günlük istatistikleri güncelle
         await pool.query(
             `INSERT INTO daily_stats (user_id, license_id, stat_date, total_receipts, total_amount, total_vat)
              VALUES ($1, $2, CURRENT_DATE, 1, $3, $4)
@@ -254,6 +258,33 @@ app.post('/api/receipt/log', async (req, res) => {
              total_amount = daily_stats.total_amount + $3,
              total_vat = daily_stats.total_vat + $4`,
             [userId, licenseId, amount, vat_amount]
+        );
+
+        // Detaylı aktivite logu ekle
+        await pool.query(
+            `INSERT INTO detailed_activity_logs (session_id, user_id, license_id, action_type, action_details, company_name, receipt_no, amount)
+             VALUES ($1, $2, $3, 'receipt_print', $4, $5, $6, $7)`,
+            [session_id, userId, licenseId, `Fiş kesildi: ${receipt_no}`, company_name, receipt_no, amount]
+        );
+
+        // Oturum istatistiklerini güncelle
+        if (session_id) {
+            await pool.query(
+                `UPDATE session_logs SET total_receipts = total_receipts + 1, total_amount = total_amount + $1 WHERE id = $2`,
+                [amount, session_id]
+            );
+        }
+
+        // Firma bazlı istatistikleri güncelle
+        await pool.query(
+            `INSERT INTO company_stats (license_id, company_name, total_receipts, total_amount, last_receipt_date, first_receipt_date)
+             VALUES ($1, $2, 1, $3, NOW(), NOW())
+             ON CONFLICT (license_id, company_name) DO UPDATE SET 
+             total_receipts = company_stats.total_receipts + 1,
+             total_amount = company_stats.total_amount + $3,
+             last_receipt_date = NOW(),
+             updated_at = NOW()`,
+            [licenseId, company_name, amount]
         );
 
         res.json({ success: true, message: 'Fiş kaydedildi' });
@@ -480,6 +511,128 @@ app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Kullanıcı silme hatası:', error);
         res.status(500).json({ success: false, error: 'Sunucu hatası: ' + error.message });
+    }
+});
+
+// Kullanıcı detayları (Oturumlar, aktiviteler, istatistikler)
+app.get('/api/admin/users/:id/details', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Kullanıcı bilgileri
+        const userResult = await pool.query(`
+            SELECT u.*, l.license_key, l.company_name as license_company, l.expires_at
+            FROM users u
+            LEFT JOIN licenses l ON u.license_id = l.id
+            WHERE u.id = $1
+        `, [id]);
+
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Kullanıcı bulunamadı' });
+        }
+
+        // Oturum logları
+        const sessionsResult = await pool.query(`
+            SELECT * FROM session_logs
+            WHERE user_id = $1
+            ORDER BY session_start DESC
+            LIMIT 50
+        `, [id]);
+
+        // Son aktiviteler
+        const activitiesResult = await pool.query(`
+            SELECT * FROM detailed_activity_logs
+            WHERE user_id = $1
+            ORDER BY created_at DESC
+            LIMIT 100
+        `, [id]);
+
+        // Firma bazlı istatistikler
+        const companiesResult = await pool.query(`
+            SELECT 
+                company_name,
+                COUNT(*) as receipt_count,
+                SUM(amount) as total_amount
+            FROM receipts
+            WHERE user_id = $1
+            GROUP BY company_name
+            ORDER BY total_amount DESC
+        `, [id]);
+
+        res.json({
+            success: true,
+            data: {
+                user: userResult.rows[0],
+                sessions: sessionsResult.rows,
+                activities: activitiesResult.rows,
+                companies: companiesResult.rows
+            }
+        });
+
+    } catch (error) {
+        console.error('Kullanıcı detay hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Lisans detayları (Kullanıcılar, firmalar, istatistikler)
+app.get('/api/admin/licenses/:id/details', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Lisans bilgileri
+        const licenseResult = await pool.query('SELECT * FROM licenses WHERE id = $1', [id]);
+
+        if (licenseResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Lisans bulunamadı' });
+        }
+
+        // Kullanıcılar
+        const usersResult = await pool.query(`
+            SELECT * FROM users WHERE license_id = $1 ORDER BY last_seen DESC
+        `, [id]);
+
+        // Firma bazlı istatistikler
+        const companiesResult = await pool.query(`
+            SELECT * FROM company_stats WHERE license_id = $1 ORDER BY total_amount DESC
+        `, [id]);
+
+        // Son aktiviteler
+        const activitiesResult = await pool.query(`
+            SELECT dal.*, u.pc_name
+            FROM detailed_activity_logs dal
+            LEFT JOIN users u ON dal.user_id = u.id
+            WHERE dal.license_id = $1
+            ORDER BY dal.created_at DESC
+            LIMIT 100
+        `, [id]);
+
+        // Günlük istatistikler (Son 30 gün)
+        const dailyStatsResult = await pool.query(`
+            SELECT 
+                stat_date,
+                SUM(total_receipts) as receipts,
+                SUM(total_amount) as amount
+            FROM daily_stats
+            WHERE license_id = $1 AND stat_date >= CURRENT_DATE - INTERVAL '30 days'
+            GROUP BY stat_date
+            ORDER BY stat_date DESC
+        `, [id]);
+
+        res.json({
+            success: true,
+            data: {
+                license: licenseResult.rows[0],
+                users: usersResult.rows,
+                companies: companiesResult.rows,
+                activities: activitiesResult.rows,
+                daily_stats: dailyStatsResult.rows
+            }
+        });
+
+    } catch (error) {
+        console.error('Lisans detay hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
     }
 });
 
