@@ -9,24 +9,72 @@
 <body>
     <!-- GİRİŞ EKRANI -->
     <div id="login-screen" class="login-container">
+        <!-- Animated Background -->
+        <div class="login-bg-animation"></div>
+        
         <div class="login-box">
-            <div class="login-header">
-                <h1>🖨️ Fiş Yönetim Paneli</h1>
-                <p>Lisans ve İstatistik Yönetimi</p>
+            <div class="login-logo">
+                <div class="logo-circle">
+                    <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
+                        <path d="M30 5L50 15V35L30 45L10 35V15L30 5Z" stroke="url(#gradient)" stroke-width="3" fill="none"/>
+                        <circle cx="30" cy="25" r="8" fill="url(#gradient)"/>
+                        <defs>
+                            <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#667eea"/>
+                                <stop offset="100%" style="stop-color:#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
             </div>
+            
+            <div class="login-header">
+                <h1>Fiş Yönetim Paneli</h1>
+                <p>Güvenli giriş yapın</p>
+            </div>
+            
             <form id="login-form" class="login-form">
                 <div class="form-group">
-                    <label for="username">Kullanıcı Adı</label>
-                    <input type="text" id="username" required autocomplete="username">
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="username" placeholder="Kullanıcı adı" required autocomplete="username">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="password">Şifre</label>
-                    <input type="password" id="password" required autocomplete="current-password">
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="password" placeholder="Şifre" required autocomplete="current-password">
+                        <button type="button" class="toggle-password" onclick="togglePassword()">👁️</button>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                
+                <div class="remember-forgot">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember-me">
+                        <span>Beni hatırla</span>
+                    </label>
+                    <a href="#" class="forgot-link">Şifremi unuttum?</a>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-login">
+                    <span>Giriş Yap</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 4L16 10L10 16M16 10H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                
                 <div id="login-error" class="error-message"></div>
+                
+                <div class="login-footer">
+                    <p>Demo: <code>admin</code> / <code>admin123</code></p>
+                </div>
             </form>
         </div>
+        
+        <!-- Floating Shapes -->
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
     </div>
 
     <!-- ANA PANEL -->
