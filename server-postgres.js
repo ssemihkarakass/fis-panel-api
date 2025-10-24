@@ -594,36 +594,78 @@ app.post('/api/session/start', async (req, res) => {
     try {
         const { license_key, hardware_id, pc_name, user_id } = req.body;
 
+        console.log('🔐 Oturum başlatma:', { license_key, hardware_id, pc_name, user_id });
+
         const licenseResult = await pool.query(
             'SELECT id FROM licenses WHERE license_key = $1',
             [license_key]
         );
 
         if (licenseResult.rows.length === 0) {
+            console.log('❌ Geçersiz lisans:', license_key);
             return res.json({ success: false, error: 'Geçersiz lisans' });
         }
 
         const licenseId = licenseResult.rows[0].id;
 
+        // User var mı kontrol et
+        let actualUserId = user_id;
+        if (user_id) {
+            const userCheck = await pool.query('SELECT id FROM users WHERE id = $1', [user_id]);
+            if (userCheck.rows.length === 0) {
+                console.log('⚠️ User ID bulunamadı, hardware_id ile aranıyor:', hardware_id);
+                actualUserId = null;
+            }
+        }
+
+        // Hardware ID ile user bul veya oluştur
+        if (!actualUserId && hardware_id) {
+            const userResult = await pool.query(
+                'SELECT id FROM users WHERE hardware_id = $1',
+                [hardware_id]
+            );
+
+            if (userResult.rows.length > 0) {
+                actualUserId = userResult.rows[0].id;
+                console.log('✅ User bulundu:', actualUserId);
+            } else {
+                // User yoksa oluştur
+                const newUserResult = await pool.query(
+                    `INSERT INTO users (license_id, hardware_id, pc_name, is_online)
+                     VALUES ($1, $2, $3, true) RETURNING id`,
+                    [licenseId, hardware_id, pc_name]
+                );
+                actualUserId = newUserResult.rows[0].id;
+                console.log('✅ Yeni user oluşturuldu:', actualUserId);
+            }
+        }
+
+        if (!actualUserId) {
+            console.log('❌ User ID bulunamadı ve oluşturulamadı');
+            return res.json({ success: false, error: 'Kullanıcı bulunamadı' });
+        }
+
         // Oturum oluştur
         const sessionResult = await pool.query(
             `INSERT INTO session_logs (user_id, license_id, pc_name, status)
              VALUES ($1, $2, $3, 'active') RETURNING id`,
-            [user_id, licenseId, pc_name]
+            [actualUserId, licenseId, pc_name]
         );
+
+        console.log('✅ Oturum oluşturuldu:', sessionResult.rows[0].id);
 
         // Aktivite logu ekle
         await pool.query(
             `INSERT INTO detailed_activity_logs (user_id, license_id, action_type, action_details)
              VALUES ($1, $2, 'login', $3)`,
-            [user_id, licenseId, `Oturum açıldı: ${pc_name}`]
+            [actualUserId, licenseId, `Oturum açıldı: ${pc_name}`]
         );
 
         res.json({ success: true, session_id: sessionResult.rows[0].id });
 
     } catch (error) {
-        console.error('Session start error:', error);
-        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+        console.error('❌ Session start error:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası: ' + error.message });
     }
 });
 
