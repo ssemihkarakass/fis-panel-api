@@ -703,6 +703,173 @@ app.post('/api/session/end', async (req, res) => {
     }
 });
 
+// Dashboard - Bugünkü fişler
+app.get('/api/admin/dashboard/today', authenticateToken, async (req, res) => {
+    try {
+        // Bugünkü toplam fişler
+        const todayStatsResult = await pool.query(
+            `SELECT 
+                COUNT(*) as total_receipts,
+                COALESCE(SUM(amount), 0) as total_amount,
+                COALESCE(SUM(vat_amount), 0) as total_vat
+            FROM receipts
+            WHERE DATE(date_printed) = CURRENT_DATE`
+        );
+
+        // Bugünkü aktif oturumlar
+        const activeSessionsResult = await pool.query(
+            `SELECT COUNT(*) as active_sessions
+            FROM session_logs
+            WHERE status = 'active' AND DATE(session_start) = CURRENT_DATE`
+        );
+
+        // Bugünkü en çok fiş kesen kullanıcılar
+        const topUsersResult = await pool.query(
+            `SELECT 
+                u.pc_name,
+                COUNT(r.id) as receipt_count,
+                SUM(r.amount) as total_amount
+            FROM receipts r
+            JOIN users u ON r.user_id = u.id
+            WHERE DATE(r.date_printed) = CURRENT_DATE
+            GROUP BY u.id, u.pc_name
+            ORDER BY receipt_count DESC
+            LIMIT 5`
+        );
+
+        res.json({
+            success: true,
+            today: todayStatsResult.rows[0],
+            active_sessions: activeSessionsResult.rows[0].active_sessions,
+            top_users: topUsersResult.rows
+        });
+
+    } catch (error) {
+        console.error('Dashboard bugünkü fişler hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Oturum detayları - Hangi firmalar, ne kadar kesildi
+app.get('/api/admin/sessions/:id/details', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Oturum bilgisi
+        const sessionResult = await pool.query(
+            `SELECT 
+                sl.*,
+                u.pc_name,
+                l.license_key,
+                l.company_name as license_company
+            FROM session_logs sl
+            JOIN users u ON sl.user_id = u.id
+            JOIN licenses l ON sl.license_id = l.id
+            WHERE sl.id = $1`,
+            [id]
+        );
+
+        if (sessionResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Oturum bulunamadı' });
+        }
+
+        // Oturumdaki fişler - Firma bazlı
+        const receiptsResult = await pool.query(
+            `SELECT 
+                company_name,
+                COUNT(*) as receipt_count,
+                SUM(amount) as total_amount,
+                SUM(vat_amount) as total_vat,
+                MIN(receipt_no) as first_receipt,
+                MAX(receipt_no) as last_receipt,
+                ARRAY_AGG(
+                    json_build_object(
+                        'receipt_no', receipt_no,
+                        'amount', amount,
+                        'vat_rate', vat_rate,
+                        'vat_amount', vat_amount,
+                        'description', description,
+                        'date_printed', date_printed
+                    ) ORDER BY receipt_no
+                ) as receipts
+            FROM receipts
+            WHERE user_id = (SELECT user_id FROM session_logs WHERE id = $1)
+            AND date_printed >= (SELECT DATE(session_start) FROM session_logs WHERE id = $1)
+            AND date_printed <= COALESCE((SELECT DATE(session_end) FROM session_logs WHERE id = $1), CURRENT_DATE)
+            GROUP BY company_name
+            ORDER BY total_amount DESC`,
+            [id]
+        );
+
+        // Oturumdaki tüm aktiviteler
+        const activitiesResult = await pool.query(
+            `SELECT 
+                action_type,
+                action_details,
+                company_name,
+                receipt_no,
+                amount,
+                created_at
+            FROM detailed_activity_logs
+            WHERE session_id = $1
+            ORDER BY created_at DESC`,
+            [id]
+        );
+
+        res.json({
+            success: true,
+            session: sessionResult.rows[0],
+            companies: receiptsResult.rows,
+            activities: activitiesResult.rows
+        });
+
+    } catch (error) {
+        console.error('Oturum detay hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Excel export için oturum fişleri
+app.get('/api/admin/sessions/:id/export', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Oturumdaki tüm fişler - Excel formatında
+        const receiptsResult = await pool.query(
+            `SELECT 
+                TO_CHAR(r.date_printed, 'DD.MM.YYYY') as tarih,
+                r.receipt_no as fis_no,
+                r.company_name as unvan,
+                r.amount - r.vat_amount as matrah,
+                r.vat_amount as kdv,
+                r.amount as tutar,
+                r.vat_rate as kdv_orani
+            FROM receipts r
+            WHERE r.user_id = (SELECT user_id FROM session_logs WHERE id = $1)
+            AND r.date_printed >= (SELECT DATE(session_start) FROM session_logs WHERE id = $1)
+            AND r.date_printed <= COALESCE((SELECT DATE(session_end) FROM session_logs WHERE id = $1), CURRENT_DATE)
+            ORDER BY r.vat_rate, r.receipt_no`,
+            [id]
+        );
+
+        // KDV oranına göre ayır
+        const kdv10 = receiptsResult.rows.filter(r => r.kdv_orani === 10);
+        const kdv20 = receiptsResult.rows.filter(r => r.kdv_orani === 20);
+
+        res.json({
+            success: true,
+            data: {
+                'KDV %10': kdv10,
+                'KDV %20': kdv20
+            }
+        });
+
+    } catch (error) {
+        console.error('Excel export hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
 // Lisans detayları (Kullanıcılar, firmalar, istatistikler)
 app.get('/api/admin/licenses/:id/details', authenticateToken, async (req, res) => {
     try {
