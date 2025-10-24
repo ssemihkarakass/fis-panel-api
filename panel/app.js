@@ -246,13 +246,13 @@ async function loadDashboard() {
         // Bugünkü fişler - YENİ endpoint'ten al
         if (todayData.today) {
             updateStatCard('today-receipts', todayData.today.total_receipts || 0);
-            updateStatCard('today-amount', formatCurrency(todayData.today.total_amount || 0));
+            updateStatCard('today-amount', formatCurrencyShort(todayData.today.total_amount || 0));
         } else {
             // Fallback: Eski yöntem
             const today = new Date().toISOString().split('T')[0];
             const todayStats = receipts.data.find(r => r.stat_date === today) || { receipts: 0, amount: 0 };
             updateStatCard('today-receipts', todayStats.receipts || 0);
-            updateStatCard('today-amount', formatCurrency(todayStats.amount || 0));
+            updateStatCard('today-amount', formatCurrencyShort(todayStats.amount || 0));
         }
         
         // Calculate month stats
@@ -265,7 +265,7 @@ async function loadDashboard() {
             }), { receipts: 0, amount: 0 });
         
         updateStatCard('month-receipts', monthStats.receipts);
-        updateStatCard('month-amount', formatCurrency(monthStats.amount));
+        updateStatCard('month-amount', formatCurrencyShort(monthStats.amount));
         
         // Load charts
         loadCharts(receipts.data);
@@ -563,6 +563,17 @@ function formatCurrency(amount) {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
     }).format(amount) + ' ₺';
+}
+
+// Büyük tutarlar için kısaltma (Dashboard için)
+function formatCurrencyShort(amount) {
+    if (amount >= 1000000) {
+        return (amount / 1000000).toFixed(1) + 'M ₺';
+    } else if (amount >= 1000) {
+        return (amount / 1000).toFixed(1) + 'K ₺';
+    } else {
+        return amount.toFixed(2) + ' ₺';
+    }
 }
 
 function formatDate(dateStr) {
