@@ -557,21 +557,19 @@ function convertToCSV(data) {
     return [headers.join(','), ...rows].join('\n');
 }
 
-// Badge styles (add to CSS if not exists)
-const style = document.createElement('style');
-style.textContent = `
-    .badge {
-        padding: 4px 12px;
-        border-radius: 12px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        display: inline-block;
+// Toggle password visibility
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleBtn = document.querySelector('.toggle-password');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleBtn.textContent = '🙈';
+    } else {
+        passwordInput.type = 'password';
+        toggleBtn.textContent = '👁️';
     }
-    .badge-active { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .badge-expired { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
-    .badge-suspended { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-    .badge-success { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .badge-secondary { background: rgba(148, 163, 184, 0.2); color: #94a3b8; }
-    .btn-sm { padding: 0.5rem 1rem; font-size: 0.875rem; }
-`;
-document.head.appendChild(style);
+}
+
+// Make togglePassword global
+window.togglePassword = togglePassword;
