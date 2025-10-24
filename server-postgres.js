@@ -575,6 +575,78 @@ app.get('/api/admin/users/:id/details', authenticateToken, async (req, res) => {
     }
 });
 
+// Oturum başlat
+app.post('/api/session/start', async (req, res) => {
+    try {
+        const { license_key, hardware_id, pc_name, user_id } = req.body;
+
+        const licenseResult = await pool.query(
+            'SELECT id FROM licenses WHERE license_key = $1',
+            [license_key]
+        );
+
+        if (licenseResult.rows.length === 0) {
+            return res.json({ success: false, error: 'Geçersiz lisans' });
+        }
+
+        const licenseId = licenseResult.rows[0].id;
+
+        // Oturum oluştur
+        const sessionResult = await pool.query(
+            `INSERT INTO session_logs (user_id, license_id, pc_name, status)
+             VALUES ($1, $2, $3, 'active') RETURNING id`,
+            [user_id, licenseId, pc_name]
+        );
+
+        // Aktivite logu ekle
+        await pool.query(
+            `INSERT INTO detailed_activity_logs (user_id, license_id, action_type, action_details)
+             VALUES ($1, $2, 'login', $3)`,
+            [user_id, licenseId, `Oturum açıldı: ${pc_name}`]
+        );
+
+        res.json({ success: true, session_id: sessionResult.rows[0].id });
+
+    } catch (error) {
+        console.error('Session start error:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Oturum bitir
+app.post('/api/session/end', async (req, res) => {
+    try {
+        const { session_id } = req.body;
+
+        // Oturumu güncelle
+        await pool.query(
+            `UPDATE session_logs SET session_end = NOW(), status = 'ended' WHERE id = $1`,
+            [session_id]
+        );
+
+        // Aktivite logu ekle
+        const sessionResult = await pool.query(
+            'SELECT user_id, license_id FROM session_logs WHERE id = $1',
+            [session_id]
+        );
+
+        if (sessionResult.rows.length > 0) {
+            const { user_id, license_id } = sessionResult.rows[0];
+            await pool.query(
+                `INSERT INTO detailed_activity_logs (session_id, user_id, license_id, action_type, action_details)
+                 VALUES ($1, $2, $3, 'logout', 'Oturum kapatıldı')`,
+                [session_id, user_id, license_id]
+            );
+        }
+
+        res.json({ success: true });
+
+    } catch (error) {
+        console.error('Session end error:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
 // Lisans detayları (Kullanıcılar, firmalar, istatistikler)
 app.get('/api/admin/licenses/:id/details', authenticateToken, async (req, res) => {
     try {
