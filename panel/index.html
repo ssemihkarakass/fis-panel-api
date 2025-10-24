@@ -111,6 +111,14 @@
                     <span class="material-icons icon">bar_chart</span>
                     <span>İstatistikler</span>
                 </a>
+                <a href="#" class="nav-item" data-page="activities">
+                    <span class="material-icons icon">history</span>
+                    <span>Aktiviteler</span>
+                </a>
+                <a href="#" class="nav-item" data-page="sessions">
+                    <span class="material-icons icon">schedule</span>
+                    <span>Oturumlar</span>
+                </a>
                 <a href="#" class="nav-item" data-page="settings">
                     <span class="material-icons icon">settings</span>
                     <span>Ayarlar</span>
@@ -361,6 +369,59 @@
                         <h3>Şirket Bazlı Dağılım</h3>
                         <canvas id="chart-companies"></canvas>
                     </div>
+                </div>
+            </div>
+
+            <!-- ACTIVITIES PAGE -->
+            <div id="page-activities" class="page">
+                <div class="page-header">
+                    <h1>Aktivite Logları</h1>
+                    <p>Tüm kullanıcı aktiviteleri</p>
+                </div>
+
+                <div class="table-card">
+                    <table id="activities-table">
+                        <thead>
+                            <tr>
+                                <th>Zaman</th>
+                                <th>Tip</th>
+                                <th>Detay</th>
+                                <th>Firma</th>
+                                <th>Fiş No</th>
+                                <th>Tutar</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="6" style="text-align: center; padding: 40px;">Yükleniyor...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SESSIONS PAGE -->
+            <div id="page-sessions" class="page">
+                <div class="page-header">
+                    <h1>Oturumlar</h1>
+                    <p>Kullanıcı oturumları ve detayları</p>
+                </div>
+
+                <div class="table-card">
+                    <table id="sessions-table">
+                        <thead>
+                            <tr>
+                                <th>PC Adı</th>
+                                <th>Başlangıç</th>
+                                <th>Bitiş</th>
+                                <th>Fiş Sayısı</th>
+                                <th>Toplam Tutar</th>
+                                <th>Durum</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td colspan="7" style="text-align: center; padding: 40px;">Yükleniyor...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 

@@ -211,6 +211,12 @@ function navigateToPage(pageName) {
         case 'stats':
             loadStats();
             break;
+        case 'activities':
+            loadActivities();
+            break;
+        case 'sessions':
+            loadSessions();
+            break;
     }
 }
 // DASHBOARD
@@ -995,4 +1001,206 @@ async function handleSuspendLicense() {
         console.error('Suspend error:', error);
         alert('Lisans askıya alınamadı');
     }
+}
+
+// ===================================
+// ACTIVITIES
+// ===================================
+
+async function loadActivities() {
+    try {
+        const response = await fetchAPI('/api/admin/activities?limit=100');
+        const activities = response.data;
+        
+        const tbody = document.querySelector('#activities-table tbody');
+        tbody.innerHTML = '';
+        
+        if (activities && activities.length > 0) {
+            activities.forEach(activity => {
+                const tr = document.createElement('tr');
+                const actionClass = getActionClass(activity.action_type);
+                const actionText = getActionText(activity.action_type);
+                
+                tr.innerHTML = `
+                    <td>${formatDateTime(activity.created_at)}</td>
+                    <td><span class="badge badge-${actionClass}">${actionText}</span></td>
+                    <td>${activity.action_details || '-'}</td>
+                    <td>${activity.company_name || '-'}</td>
+                    <td>${activity.receipt_no || '-'}</td>
+                    <td>${activity.amount ? formatCurrency(activity.amount) : '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #999;">Henüz aktivite yok</td></tr>';
+        }
+        
+    } catch (error) {
+        console.error('Activities load error:', error);
+        const tbody = document.querySelector('#activities-table tbody');
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #f56565;">Yükleme hatası!</td></tr>';
+    }
+}
+
+function getActionClass(actionType) {
+    const classes = {
+        'login': 'success',
+        'logout': 'danger',
+        'receipt_print': 'primary',
+        'company_add': 'info',
+        'company_edit': 'warning',
+        'company_delete': 'danger',
+        'excel_export': 'info'
+    };
+    return classes[actionType] || 'secondary';
+}
+
+function getActionText(actionType) {
+    const texts = {
+        'login': '🟢 Giriş',
+        'logout': '🔴 Çıkış',
+        'receipt_print': '🧾 Fiş',
+        'company_add': '➕ Firma Ekle',
+        'company_edit': '✏️ Firma Düzenle',
+        'company_delete': '🗑️ Firma Sil',
+        'excel_export': '📊 Excel'
+    };
+    return texts[actionType] || actionType;
+}
+
+// ===================================
+// SESSIONS
+// ===================================
+
+async function loadSessions() {
+    try {
+        const response = await fetchAPI('/api/admin/sessions');
+        const sessions = response.data;
+        
+        const tbody = document.querySelector('#sessions-table tbody');
+        tbody.innerHTML = '';
+        
+        if (sessions && sessions.length > 0) {
+            sessions.forEach(session => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${session.pc_name || '-'}</td>
+                    <td>${formatDateTime(session.session_start)}</td>
+                    <td>${session.session_end ? formatDateTime(session.session_end) : '-'}</td>
+                    <td>${session.total_receipts || 0}</td>
+                    <td>${formatCurrency(session.total_amount || 0)}</td>
+                    <td><span class="badge badge-${session.status === 'active' ? 'success' : 'secondary'}">${session.status === 'active' ? 'Aktif' : 'Bitti'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="window.viewSessionDetail(${session.id})">
+                            <span class="material-icons" style="font-size: 1rem;">visibility</span> Detay
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Henüz oturum yok</td></tr>';
+        }
+        
+    } catch (error) {
+        console.error('Sessions load error:', error);
+        const tbody = document.querySelector('#sessions-table tbody');
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #f56565;">Yükleme hatası!</td></tr>';
+    }
+}
+
+async function viewSessionDetail(sessionId) {
+    try {
+        const response = await fetchAPI(`/api/admin/sessions/${sessionId}/details`);
+        
+        if (response.success) {
+            const session = response.session;
+            const companies = response.companies;
+            
+            let detailHTML = `
+                <div style="padding: 20px;">
+                    <h2>Oturum Detayı #${sessionId}</h2>
+                    <div style="margin: 20px 0; padding: 15px; background: #f7fafc; border-radius: 8px;">
+                        <p><strong>PC Adı:</strong> ${session.pc_name}</p>
+                        <p><strong>Başlangıç:</strong> ${formatDateTime(session.session_start)}</p>
+                        <p><strong>Bitiş:</strong> ${session.session_end ? formatDateTime(session.session_end) : 'Devam ediyor'}</p>
+                        <p><strong>Toplam Fiş:</strong> ${session.total_receipts || 0}</p>
+                        <p><strong>Toplam Tutar:</strong> ${formatCurrency(session.total_amount || 0)}</p>
+                    </div>
+                    
+                    <h3 style="margin-top: 30px;">Firmalar ve Fişler</h3>
+            `;
+            
+            if (companies && companies.length > 0) {
+                companies.forEach(company => {
+                    detailHTML += `
+                        <div style="margin: 15px 0; padding: 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;">
+                            <h4 style="color: #667eea;">${company.company_name}</h4>
+                            <p><strong>Fiş Sayısı:</strong> ${company.receipt_count}</p>
+                            <p><strong>Toplam Tutar:</strong> ${formatCurrency(company.total_amount)}</p>
+                            <p><strong>İlk Fiş:</strong> ${company.first_receipt} - <strong>Son Fiş:</strong> ${company.last_receipt}</p>
+                        </div>
+                    `;
+                });
+            } else {
+                detailHTML += '<p style="color: #999;">Bu oturumda fiş kesilmemiş</p>';
+            }
+            
+            detailHTML += `
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-success" onclick="exportSessionExcel(${sessionId})">📊 Excel'e Aktar</button>
+                        <button class="btn btn-secondary" onclick="hideModal('session-detail-modal')" style="margin-left: 10px;">Kapat</button>
+                    </div>
+                </div>
+            `;
+            
+            // Modal göster
+            showCustomModal('Oturum Detayı', detailHTML);
+        }
+        
+    } catch (error) {
+        console.error('Session detail error:', error);
+        alert('Oturum detayı yüklenemedi!');
+    }
+}
+
+async function exportSessionExcel(sessionId) {
+    try {
+        const response = await fetchAPI(`/api/admin/sessions/${sessionId}/export`);
+        
+        if (response.success && response.data) {
+            // Excel formatında indir
+            const allReceipts = [
+                ...response.data['KDV %10'],
+                ...response.data['KDV %20']
+            ];
+            
+            const csv = convertToCSV(allReceipts);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `oturum_${sessionId}_fisler.csv`;
+            link.click();
+            
+            alert('Excel dosyası indirildi!');
+        }
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Excel export hatası!');
+    }
+}
+
+function showCustomModal(title, content) {
+    // Basit modal göster
+    const modal = document.createElement('div');
+    modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+    modal.innerHTML = `
+        <div style="background: white; padding: 30px; border-radius: 15px; max-width: 800px; max-height: 80vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+            ${content}
+        </div>
+    `;
+    modal.onclick = (e) => {
+        if (e.target === modal) modal.remove();
+    };
+    document.body.appendChild(modal);
 }
