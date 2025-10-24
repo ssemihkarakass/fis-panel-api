@@ -419,6 +419,35 @@ app.put('/api/admin/licenses/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Lisans sil
+app.delete('/api/admin/licenses/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Önce ilişkili kayıtları kontrol et
+        const [users] = await pool.query(
+            'SELECT COUNT(*) as count FROM users WHERE license_id = $1',
+            [id]
+        );
+
+        if (parseInt(users.rows[0].count) > 0) {
+            return res.json({
+                success: false,
+                error: `Bu lisansa bağlı ${users.rows[0].count} kullanıcı var. Önce kullanıcıları silin.`
+            });
+        }
+
+        // Lisansı sil (CASCADE ile ilişkili kayıtlar da silinir)
+        await pool.query('DELETE FROM licenses WHERE id = $1', [id]);
+
+        res.json({ success: true, message: 'Lisans silindi' });
+
+    } catch (error) {
+        console.error('Lisans silme hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
 // Kullanıcıları listele
 app.get('/api/admin/users', authenticateToken, async (req, res) => {
     try {

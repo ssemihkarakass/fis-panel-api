@@ -628,15 +628,15 @@ body {
     opacity: 1;
 }
 
-/* Renkli Kartlar */
+/* Renkli Kartlar - Düzenli Tema (Mavi & Yeşil) */
 .stat-card-blue { color: #3b82f6; }
 .stat-card-green { color: #10b981; }
-.stat-card-purple { color: #8b5cf6; }
-.stat-card-cyan { color: #06b6d4; }
-.stat-card-orange { color: #f97316; }
-.stat-card-yellow { color: #eab308; }
-.stat-card-pink { color: #ec4899; }
-.stat-card-red { color: #ef4444; }
+.stat-card-purple { color: #6366f1; }
+.stat-card-cyan { color: #3b82f6; }
+.stat-card-orange { color: #10b981; }
+.stat-card-yellow { color: #6366f1; }
+.stat-card-pink { color: #3b82f6; }
+.stat-card-red { color: #10b981; }
 
 .stat-icon-wrapper {
     width: 70px;

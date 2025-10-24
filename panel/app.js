@@ -83,6 +83,24 @@ function initEventListeners() {
     if (exportExcelBtn) {
         exportExcelBtn.addEventListener('click', handleExportExcel);
     }
+    
+    // Delete license button
+    const deleteLicenseBtn = document.getElementById('delete-license-btn');
+    if (deleteLicenseBtn) {
+        deleteLicenseBtn.addEventListener('click', handleDeleteLicense);
+    }
+    
+    // Add days button
+    const addDaysBtn = document.getElementById('add-days-btn');
+    if (addDaysBtn) {
+        addDaysBtn.addEventListener('click', handleAddDays);
+    }
+    
+    // Suspend license button
+    const suspendLicenseBtn = document.getElementById('suspend-license-btn');
+    if (suspendLicenseBtn) {
+        suspendLicenseBtn.addEventListener('click', handleSuspendLicense);
+    }
 }
 
 // ===================================
@@ -579,6 +597,8 @@ window.togglePassword = togglePassword;
 
 // View license detail
 async function viewLicenseDetail(licenseId) {
+    currentLicenseId = licenseId; // Set global ID
+    
     try {
         const response = await fetchAPI(`/api/admin/licenses/${licenseId}`);
         const license = response.data;
@@ -611,3 +631,109 @@ async function viewLicenseDetail(licenseId) {
 }
 
 window.viewLicenseDetail = viewLicenseDetail;
+
+// Global license ID for modal actions
+let currentLicenseId = null;
+
+// View license detail (updated)
+async function viewLicenseDetailUpdated(licenseId) {
+    currentLicenseId = licenseId;
+    await viewLicenseDetail(licenseId);
+}
+
+// Delete license
+async function handleDeleteLicense() {
+    if (!currentLicenseId) {
+        alert('Lisans seçilmedi');
+        return;
+    }
+    
+    if (!confirm('Bu lisansı silmek istediğinize emin misiniz? Bu işlem geri alınamaz!')) {
+        return;
+    }
+    
+    try {
+        const response = await fetchAPI(`/api/admin/licenses/${currentLicenseId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.success) {
+            alert('Lisans silindi!');
+            hideModal('license-detail-modal');
+            loadLicenses();
+            loadDashboard();
+        } else {
+            alert('Silme hatası: ' + response.error);
+        }
+    } catch (error) {
+        console.error('Delete error:', error);
+        alert('Lisans silinemedi');
+    }
+}
+
+// Add days to license
+async function handleAddDays() {
+    if (!currentLicenseId) {
+        alert('Lisans seçilmedi');
+        return;
+    }
+    
+    const days = prompt('Kaç gün eklemek istiyorsunuz?', '30');
+    if (!days || isNaN(days)) return;
+    
+    try {
+        const response = await fetchAPI(`/api/admin/licenses/${currentLicenseId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                action: 'add_days',
+                days: parseInt(days)
+            })
+        });
+        
+        if (response.success) {
+            alert(`${days} gün eklendi!`);
+            viewLicenseDetail(currentLicenseId);
+            loadLicenses();
+            loadDashboard();
+        } else {
+            alert('Güncelleme hatası: ' + response.error);
+        }
+    } catch (error) {
+        console.error('Add days error:', error);
+        alert('Gün eklenemedi');
+    }
+}
+
+// Suspend license
+async function handleSuspendLicense() {
+    if (!currentLicenseId) {
+        alert('Lisans seçilmedi');
+        return;
+    }
+    
+    if (!confirm('Bu lisansı askıya almak istediğinize emin misiniz?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetchAPI(`/api/admin/licenses/${currentLicenseId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                action: 'set_status',
+                status: 'suspended'
+            })
+        });
+        
+        if (response.success) {
+            alert('Lisans askıya alındı!');
+            viewLicenseDetail(currentLicenseId);
+            loadLicenses();
+            loadDashboard();
+        } else {
+            alert('Güncelleme hatası: ' + response.error);
+        }
+    } catch (error) {
+        console.error('Suspend error:', error);
+        alert('Lisans askıya alınamadı');
+    }
+}
