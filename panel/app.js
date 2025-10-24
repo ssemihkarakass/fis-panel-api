@@ -301,19 +301,25 @@ function updateStatCardWithScale(id, amount) {
         const card = element.closest('.stat-card');
         if (card) {
             // Tutar büyüklüğüne göre genişlik hesapla
-            let scaleX = 1;
+            let widthMultiplier = 1;
             if (amount >= 10000000) {        // 10M+
-                scaleX = 1.3;
+                widthMultiplier = 1.4;
             } else if (amount >= 1000000) {  // 1M+
-                scaleX = 1.2;
+                widthMultiplier = 1.3;
             } else if (amount >= 100000) {   // 100K+
-                scaleX = 1.1;
+                widthMultiplier = 1.2;
             }
             
-            // Sadece X ekseninde scale (yana büyüme)
-            card.style.transform = `scaleX(${scaleX})`;
-            card.style.transition = 'transform 0.5s ease';
-            card.style.zIndex = scaleX > 1 ? '10' : '1';
+            // Kartın genişliğini artır (scale değil, width)
+            if (widthMultiplier > 1) {
+                card.style.flex = `0 0 calc(${100 / 4}% * ${widthMultiplier})`;
+                card.style.maxWidth = `calc(${100 / 4}% * ${widthMultiplier})`;
+            } else {
+                card.style.flex = '';
+                card.style.maxWidth = '';
+            }
+            card.style.transition = 'flex 0.5s ease, max-width 0.5s ease';
+            card.style.zIndex = widthMultiplier > 1 ? '10' : '1';
         }
         
         // Animasyon
