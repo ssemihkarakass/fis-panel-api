@@ -246,13 +246,13 @@ async function loadDashboard() {
         // Bugünkü fişler - YENİ endpoint'ten al
         if (todayData.today) {
             updateStatCard('today-receipts', todayData.today.total_receipts || 0);
-            updateStatCard('today-amount', formatCurrencyShort(todayData.today.total_amount || 0));
+            updateStatCardWithScale('today-amount', todayData.today.total_amount || 0);
         } else {
             // Fallback: Eski yöntem
             const today = new Date().toISOString().split('T')[0];
             const todayStats = receipts.data.find(r => r.stat_date === today) || { receipts: 0, amount: 0 };
             updateStatCard('today-receipts', todayStats.receipts || 0);
-            updateStatCard('today-amount', formatCurrencyShort(todayStats.amount || 0));
+            updateStatCardWithScale('today-amount', todayStats.amount || 0);
         }
         
         // Calculate month stats
@@ -265,7 +265,7 @@ async function loadDashboard() {
             }), { receipts: 0, amount: 0 });
         
         updateStatCard('month-receipts', monthStats.receipts);
-        updateStatCard('month-amount', formatCurrencyShort(monthStats.amount));
+        updateStatCardWithScale('month-amount', monthStats.amount);
         
         // Load charts
         loadCharts(receipts.data);
@@ -281,6 +281,42 @@ function updateStatCard(id, value) {
         // Remove loading spinner
         element.innerHTML = value;
         // Add animation
+        element.style.opacity = '0';
+        setTimeout(() => {
+            element.style.opacity = '1';
+            element.style.transition = 'opacity 0.5s ease';
+        }, 50);
+    }
+}
+
+// Tutar kartları için - sayı büyüdükçe kart büyür
+function updateStatCardWithScale(id, amount) {
+    const element = document.getElementById(id);
+    if (element) {
+        // Tutarı formatla
+        const formattedAmount = formatCurrency(amount);
+        element.innerHTML = formattedAmount;
+        
+        // Kartın parent'ını bul (stat-card)
+        const card = element.closest('.stat-card');
+        if (card) {
+            // Tutar büyüklüğüne göre scale hesapla
+            let scale = 1;
+            if (amount >= 10000000) {        // 10M+
+                scale = 1.3;
+            } else if (amount >= 1000000) {  // 1M+
+                scale = 1.2;
+            } else if (amount >= 100000) {   // 100K+
+                scale = 1.1;
+            }
+            
+            // Scale uygula
+            card.style.transform = `scale(${scale})`;
+            card.style.transition = 'transform 0.5s ease';
+            card.style.zIndex = scale > 1 ? '10' : '1';
+        }
+        
+        // Animasyon
         element.style.opacity = '0';
         setTimeout(() => {
             element.style.opacity = '1';
