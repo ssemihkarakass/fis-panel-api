@@ -783,8 +783,9 @@ body {
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    gap: 2rem;
     margin-bottom: 2rem;
+    align-items: start;
 }
 
 .stat-card {
@@ -798,6 +799,7 @@ body {
     transition: var(--transition);
     position: relative;
     overflow: hidden;
+    transform-origin: center center;
 }
 
 .stat-card::before {
@@ -813,7 +815,6 @@ body {
 }
 
 .stat-card:hover {
-    transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
 }
 
