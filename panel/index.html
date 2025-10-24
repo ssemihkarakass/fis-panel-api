@@ -5,28 +5,68 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fiş Yönetim Paneli</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <!-- GİRİŞ EKRANI -->
     <div id="login-screen" class="login-container">
+        <!-- Animated Background -->
+        <div class="login-bg-animation"></div>
+        
         <div class="login-box">
-            <div class="login-header">
-                <h1>🖨️ Fiş Yönetim Paneli</h1>
-                <p>Lisans ve İstatistik Yönetimi</p>
+            <div class="login-logo">
+                <div class="logo-circle">
+                    <i class="fas fa-receipt" style="font-size: 2.5rem; color: #667eea;"></i>
+                </div>
             </div>
+            
+            <div class="login-header">
+                <h1>Fiş Yönetim Paneli</h1>
+                <p>Güvenli giriş yapın</p>
+            </div>
+            
             <form id="login-form" class="login-form">
                 <div class="form-group">
-                    <label for="username">Kullanıcı Adı</label>
-                    <input type="text" id="username" required autocomplete="username">
+                    <div class="input-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="username" placeholder="Kullanıcı adı" required autocomplete="username">
+                    </div>
                 </div>
                 <div class="form-group">
-                    <label for="password">Şifre</label>
-                    <input type="password" id="password" required autocomplete="current-password">
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" placeholder="Şifre" required autocomplete="current-password">
+                        <button type="button" class="toggle-password" onclick="togglePassword()">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                
+                <div class="remember-forgot">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="remember-me">
+                        <span>Beni hatırla</span>
+                    </label>
+                    <a href="#" class="forgot-link">Şifremi unuttum?</a>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-login">
+                    <span>Giriş Yap</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+                
                 <div id="login-error" class="error-message"></div>
+                
+                <div class="login-footer">
+                    <p>Demo: <code>admin</code> / <code>admin123</code></p>
+                </div>
             </form>
         </div>
+        
+        <!-- Floating Shapes -->
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
     </div>
 
     <!-- ANA PANEL -->
@@ -39,27 +79,27 @@
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-page="dashboard">
-                    <span class="icon">📊</span>
+                    <i class="fas fa-chart-line icon"></i>
                     <span>Dashboard</span>
                 </a>
                 <a href="#" class="nav-item" data-page="licenses">
-                    <span class="icon">🔑</span>
+                    <i class="fas fa-key icon"></i>
                     <span>Lisanslar</span>
                 </a>
                 <a href="#" class="nav-item" data-page="users">
-                    <span class="icon">👥</span>
+                    <i class="fas fa-users icon"></i>
                     <span>Kullanıcılar</span>
                 </a>
                 <a href="#" class="nav-item" data-page="receipts">
-                    <span class="icon">🧾</span>
+                    <i class="fas fa-receipt icon"></i>
                     <span>Fişler</span>
                 </a>
                 <a href="#" class="nav-item" data-page="stats">
-                    <span class="icon">📈</span>
+                    <i class="fas fa-chart-bar icon"></i>
                     <span>İstatistikler</span>
                 </a>
                 <a href="#" class="nav-item" data-page="settings">
-                    <span class="icon">⚙️</span>
+                    <i class="fas fa-cog icon"></i>
                     <span>Ayarlar</span>
                 </a>
             </nav>
@@ -79,60 +119,92 @@
 
                 <!-- İSTATİSTİK KARTLARI -->
                 <div class="stats-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon">🔑</div>
+                    <div class="stat-card stat-card-blue">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-key"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="total-licenses">0</h3>
-                            <p>Toplam Lisans</p>
+                            <p class="stat-label">Toplam Lisans</p>
+                            <h3 id="total-licenses" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">✅</div>
+                    <div class="stat-card stat-card-green">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="active-licenses">0</h3>
-                            <p>Aktif Lisans</p>
+                            <p class="stat-label">Aktif Lisans</p>
+                            <h3 id="active-licenses" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">👥</div>
+                    <div class="stat-card stat-card-purple">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-users"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="total-users">0</h3>
-                            <p>Toplam Kullanıcı</p>
+                            <p class="stat-label">Toplam Kullanıcı</p>
+                            <h3 id="total-users" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🟢</div>
+                    <div class="stat-card stat-card-cyan">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-signal"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="online-users">0</h3>
-                            <p>Online Kullanıcı</p>
+                            <p class="stat-label">Online Kullanıcı</p>
+                            <h3 id="online-users" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">🧾</div>
+                    <div class="stat-card stat-card-orange">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-receipt"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="today-receipts">0</h3>
-                            <p>Bugün Kesilen Fiş</p>
+                            <p class="stat-label">Bugün Kesilen Fiş</p>
+                            <h3 id="today-receipts" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">💰</div>
+                    <div class="stat-card stat-card-yellow">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-coins"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="today-amount">0 ₺</h3>
-                            <p>Bugünkü Ciro</p>
+                            <p class="stat-label">Bugünkü Ciro</p>
+                            <h3 id="today-amount" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">📅</div>
+                    <div class="stat-card stat-card-pink">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="month-receipts">0</h3>
-                            <p>Bu Ay Kesilen Fiş</p>
+                            <p class="stat-label">Bu Ay Kesilen Fiş</p>
+                            <h3 id="month-receipts" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">💵</div>
+                    <div class="stat-card stat-card-red">
+                        <div class="stat-icon-wrapper">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
                         <div class="stat-info">
-                            <h3 id="month-amount">0 ₺</h3>
-                            <p>Aylık Ciro</p>
+                            <p class="stat-label">Aylık Ciro</p>
+                            <h3 id="month-amount" class="stat-value">
+                                <span class="loading-spinner"></span>
+                            </h3>
                         </div>
                     </div>
                 </div>

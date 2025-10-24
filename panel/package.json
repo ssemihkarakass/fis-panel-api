@@ -1,0 +1,9 @@
+{
+  "name": "fis-panel-web",
+  "version": "1.0.0",
+  "description": "Fiş Yönetim Paneli - Web Interface",
+  "scripts": {
+    "dev": "python -m http.server 8000",
+    "start": "python -m http.server 8000"
+  }
+}

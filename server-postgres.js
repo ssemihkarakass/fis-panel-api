@@ -329,6 +329,30 @@ app.get('/api/admin/licenses', authenticateToken, async (req, res) => {
     }
 });
 
+// Tek lisans detayı
+app.get('/api/admin/licenses/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const result = await pool.query(`
+            SELECT l.*, COUNT(u.id) as active_devices
+            FROM licenses l
+            LEFT JOIN users u ON l.id = u.license_id AND u.is_online = TRUE
+            WHERE l.id = $1
+            GROUP BY l.id
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Lisans bulunamadı' });
+        }
+
+        res.json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Lisans detay hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
 // Yeni lisans oluştur
 app.post('/api/admin/licenses/create', authenticateToken, async (req, res) => {
     try {
@@ -352,6 +376,154 @@ app.post('/api/admin/licenses/create', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Lisans oluşturma hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Lisans güncelle
+app.put('/api/admin/licenses/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { action, days, status, notes, max_devices } = req.body;
+
+        if (action === 'add_days') {
+            await pool.query(
+                `UPDATE licenses 
+                 SET expires_at = expires_at + INTERVAL '1 day' * $1,
+                     days_remaining = days_remaining + $1
+                 WHERE id = $2`,
+                [days, id]
+            );
+        } else if (action === 'set_status') {
+            await pool.query(
+                'UPDATE licenses SET status = $1 WHERE id = $2',
+                [status, id]
+            );
+        } else if (action === 'update_notes') {
+            await pool.query(
+                'UPDATE licenses SET notes = $1 WHERE id = $2',
+                [notes, id]
+            );
+        } else if (action === 'set_max_devices') {
+            await pool.query(
+                'UPDATE licenses SET max_devices = $1 WHERE id = $2',
+                [max_devices, id]
+            );
+        }
+
+        res.json({ success: true, message: 'Lisans güncellendi' });
+
+    } catch (error) {
+        console.error('Lisans güncelleme hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Kullanıcıları listele
+app.get('/api/admin/users', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT u.*, l.license_key, l.company_name as license_company
+            FROM users u
+            LEFT JOIN licenses l ON u.license_id = l.id
+            ORDER BY u.last_seen DESC
+        `);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Kullanıcı listesi hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Günlük istatistikler
+app.get('/api/admin/stats/daily', authenticateToken, async (req, res) => {
+    try {
+        const { start_date, end_date } = req.query;
+
+        const result = await pool.query(`
+            SELECT 
+                stat_date,
+                SUM(total_receipts) as receipts,
+                SUM(total_amount) as amount,
+                SUM(total_vat) as vat
+            FROM daily_stats
+            WHERE stat_date BETWEEN $1 AND $2
+            GROUP BY stat_date
+            ORDER BY stat_date DESC
+        `, [start_date || '2024-01-01', end_date || '2099-12-31']);
+
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('İstatistik hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Fişleri export et
+app.get('/api/admin/receipts/export', authenticateToken, async (req, res) => {
+    try {
+        const { start_date, end_date, license_id } = req.query;
+
+        let query = `
+            SELECT 
+                r.id as "Fiş ID",
+                r.created_at as "Yazdırma Zamanı",
+                r.date_printed as "Tarih",
+                r.receipt_no as "Fiş No",
+                r.company_name as "Firma Adı",
+                r.amount as "Tutar (TL)",
+                r.vat_rate as "KDV Oranı (%)",
+                r.vat_amount as "KDV Tutarı (TL)",
+                r.description as "Açıklama",
+                r.cashier as "Kasiyer",
+                r.template as "Şablon",
+                l.license_key as "Lisans Anahtarı",
+                l.company_name as "Lisans Sahibi",
+                u.pc_name as "PC Adı",
+                u.hardware_id as "Donanım ID",
+                u.os_info as "İşletim Sistemi"
+            FROM receipts r
+            LEFT JOIN licenses l ON r.license_id = l.id
+            LEFT JOIN users u ON r.user_id = u.id
+            WHERE r.date_printed BETWEEN $1 AND $2
+        `;
+
+        const params = [start_date || '2024-01-01', end_date || '2099-12-31'];
+
+        if (license_id) {
+            query += ' AND r.license_id = $3';
+            params.push(license_id);
+        }
+
+        query += ' ORDER BY r.created_at DESC';
+
+        const result = await pool.query(query, params);
+
+        // Excel formatına uygun hale getir
+        const excelData = result.rows.map(r => ({
+            'Fiş ID': r['Fiş ID'],
+            'Yazdırma Zamanı': new Date(r['Yazdırma Zamanı']).toLocaleString('tr-TR'),
+            'Tarih': r['Tarih'],
+            'Fiş No': r['Fiş No'],
+            'Firma Adı': r['Firma Adı'],
+            'Tutar (TL)': parseFloat(r['Tutar (TL)'] || 0).toFixed(2),
+            'KDV Oranı (%)': r['KDV Oranı (%)'],
+            'KDV Tutarı (TL)': parseFloat(r['KDV Tutarı (TL)'] || 0).toFixed(2),
+            'Açıklama': r['Açıklama'] || '-',
+            'Kasiyer': r['Kasiyer'] || '-',
+            'Şablon': r['Şablon'] || 'Standart',
+            'Lisans Anahtarı': r['Lisans Anahtarı'],
+            'Lisans Sahibi': r['Lisans Sahibi'],
+            'PC Adı': r['PC Adı'],
+            'Donanım ID': r['Donanım ID'],
+            'İşletim Sistemi': r['İşletim Sistemi']
+        }));
+
+        res.json({ success: true, data: excelData });
+
+    } catch (error) {
+        console.error('Export hatası:', error);
         res.status(500).json({ success: false, error: 'Sunucu hatası' });
     }
 });

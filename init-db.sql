@@ -110,10 +110,10 @@ CREATE INDEX idx_activity_license_id ON activity_logs(license_id);
 -- Kullanıcı adı: admin
 -- Şifre: admin123
 INSERT INTO admin_users (username, password_hash, email, role) 
-VALUES ('admin', '$2b$10$rZ5qX8vK9YxH3nF2wL4zOeJ8vK9YxH3nF2wL4zOeJ8vK9YxH3nF2w', 'admin@example.com', 'admin')
+VALUES ('admin', '$2b$10$K7L/MtJ.V2xnqh5.vVWIa.6U9V9V9V9V9V9V9V9V9V9V9V9V9V9V9', 'admin@example.com', 'admin')
 ON CONFLICT (username) DO NOTHING;
 
--- TEST LİSANSI OLUŞTUR (opsiyonel)
+-- TEST LISANSI OLUSTUR (opsiyonel)
 INSERT INTO licenses (license_key, company_name, expires_at, days_remaining, max_devices, notes)
-VALUES ('TEST-1234-5678-ABCD', 'Test Şirketi', CURRENT_TIMESTAMP + INTERVAL '365 days', 365, 3, 'Test lisansı')
+VALUES ('TEST-1234-5678-ABCD', 'Test Sirketi', CURRENT_TIMESTAMP + INTERVAL '365 days', 365, 3, 'Test lisansi')
 ON CONFLICT (license_key) DO NOTHING;
