@@ -384,7 +384,7 @@ app.get('/api/admin/licenses', authenticateToken, async (req, res) => {
             FROM licenses l
             LEFT JOIN users u ON l.id = u.license_id AND u.is_online = TRUE
             GROUP BY l.id
-            ORDER BY l.created_at DESC
+            ORDER BY l.company_name ASC NULLS LAST, l.created_at DESC
         `);
 
         res.json({ success: true, data: result.rows });
@@ -803,7 +803,21 @@ app.get('/api/admin/sessions', authenticateToken, async (req, res) => {
                 sl.*,
                 u.pc_name,
                 l.license_key,
-                l.company_name as license_company
+                l.company_name as license_company,
+                COALESCE((
+                    SELECT COUNT(*) 
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.date_printed >= DATE(sl.session_start)
+                    AND r.date_printed <= COALESCE(DATE(sl.session_end), CURRENT_DATE)
+                ), 0) as actual_receipts,
+                COALESCE((
+                    SELECT SUM(amount) 
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.date_printed >= DATE(sl.session_start)
+                    AND r.date_printed <= COALESCE(DATE(sl.session_end), CURRENT_DATE)
+                ), 0) as actual_amount
             FROM session_logs sl
             LEFT JOIN users u ON sl.user_id = u.id
             LEFT JOIN licenses l ON sl.license_id = l.id
@@ -811,9 +825,16 @@ app.get('/api/admin/sessions', authenticateToken, async (req, res) => {
             LIMIT 100`
         );
 
+        // Gerçek değerleri kullan
+        const sessions = sessionsResult.rows.map(session => ({
+            ...session,
+            total_receipts: session.actual_receipts,
+            total_amount: session.actual_amount
+        }));
+
         res.json({
             success: true,
-            data: sessionsResult.rows
+            data: sessions
         });
 
     } catch (error) {
@@ -827,13 +848,27 @@ app.get('/api/admin/sessions/:id/details', authenticateToken, async (req, res) =
     try {
         const { id } = req.params;
 
-        // Oturum bilgisi
+        // Oturum bilgisi + Gerçek fiş sayısı ve tutarı
         const sessionResult = await pool.query(
             `SELECT 
                 sl.*,
                 u.pc_name,
                 l.license_key,
-                l.company_name as license_company
+                l.company_name as license_company,
+                COALESCE((
+                    SELECT COUNT(*) 
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.date_printed >= DATE(sl.session_start)
+                    AND r.date_printed <= COALESCE(DATE(sl.session_end), CURRENT_DATE)
+                ), 0) as actual_receipts,
+                COALESCE((
+                    SELECT SUM(amount) 
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.date_printed >= DATE(sl.session_start)
+                    AND r.date_printed <= COALESCE(DATE(sl.session_end), CURRENT_DATE)
+                ), 0) as actual_amount
             FROM session_logs sl
             JOIN users u ON sl.user_id = u.id
             JOIN licenses l ON sl.license_id = l.id
@@ -844,6 +879,11 @@ app.get('/api/admin/sessions/:id/details', authenticateToken, async (req, res) =
         if (sessionResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Oturum bulunamadı' });
         }
+        
+        // Gerçek değerleri kullan
+        const session = sessionResult.rows[0];
+        session.total_receipts = session.actual_receipts;
+        session.total_amount = session.actual_amount;
 
         // Oturumdaki fişler - Firma bazlı
         const receiptsResult = await pool.query(
