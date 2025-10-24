@@ -806,15 +806,17 @@ app.get('/api/admin/sessions', authenticateToken, async (req, res) => {
                 l.company_name as license_company,
                 COALESCE((
                     SELECT COUNT(*) 
-                    FROM detailed_activity_logs dal
-                    WHERE dal.session_id = sl.id 
-                    AND dal.action_type = 'receipt_print'
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.created_at >= sl.session_start
+                    AND r.created_at <= COALESCE(sl.session_end, NOW())
                 ), 0) as actual_receipts,
                 COALESCE((
                     SELECT SUM(amount) 
-                    FROM detailed_activity_logs dal
-                    WHERE dal.session_id = sl.id 
-                    AND dal.action_type = 'receipt_print'
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.created_at >= sl.session_start
+                    AND r.created_at <= COALESCE(sl.session_end, NOW())
                 ), 0) as actual_amount
             FROM session_logs sl
             LEFT JOIN users u ON sl.user_id = u.id
@@ -855,15 +857,17 @@ app.get('/api/admin/sessions/:id/details', authenticateToken, async (req, res) =
                 l.company_name as license_company,
                 COALESCE((
                     SELECT COUNT(*) 
-                    FROM detailed_activity_logs dal
-                    WHERE dal.session_id = sl.id 
-                    AND dal.action_type = 'receipt_print'
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.created_at >= sl.session_start
+                    AND r.created_at <= COALESCE(sl.session_end, NOW())
                 ), 0) as actual_receipts,
                 COALESCE((
                     SELECT SUM(amount) 
-                    FROM detailed_activity_logs dal
-                    WHERE dal.session_id = sl.id 
-                    AND dal.action_type = 'receipt_print'
+                    FROM receipts r 
+                    WHERE r.user_id = sl.user_id 
+                    AND r.created_at >= sl.session_start
+                    AND r.created_at <= COALESCE(sl.session_end, NOW())
                 ), 0) as actual_amount
             FROM session_logs sl
             JOIN users u ON sl.user_id = u.id
@@ -884,26 +888,27 @@ app.get('/api/admin/sessions/:id/details', authenticateToken, async (req, res) =
         // Oturumdaki fişler - Firma bazlı (sadece bu oturumda kesilmiş fişler)
         const receiptsResult = await pool.query(
             `SELECT 
-                dal.company_name,
+                r.company_name,
                 COUNT(*) as receipt_count,
-                SUM(dal.amount) as total_amount,
-                MIN(dal.receipt_no) as first_receipt,
-                MAX(dal.receipt_no) as last_receipt,
+                SUM(r.amount) as total_amount,
+                SUM(r.vat_amount) as total_vat,
+                MIN(r.receipt_no) as first_receipt,
+                MAX(r.receipt_no) as last_receipt,
                 ARRAY_AGG(
                     json_build_object(
-                        'receipt_no', dal.receipt_no,
-                        'amount', dal.amount,
-                        'vat_rate', 0,
-                        'vat_amount', 0,
-                        'description', dal.action_details,
-                        'date_printed', dal.created_at
-                    ) ORDER BY dal.receipt_no
+                        'receipt_no', r.receipt_no,
+                        'amount', r.amount,
+                        'vat_rate', r.vat_rate,
+                        'vat_amount', r.vat_amount,
+                        'description', r.description,
+                        'date_printed', r.created_at
+                    ) ORDER BY r.receipt_no
                 ) as receipts
-            FROM detailed_activity_logs dal
-            WHERE dal.session_id = $1
-            AND dal.action_type = 'receipt_print'
-            AND dal.company_name IS NOT NULL
-            GROUP BY dal.company_name
+            FROM receipts r
+            WHERE r.user_id = (SELECT user_id FROM session_logs WHERE id = $1)
+            AND r.created_at >= (SELECT session_start FROM session_logs WHERE id = $1)
+            AND r.created_at <= COALESCE((SELECT session_end FROM session_logs WHERE id = $1), NOW())
+            GROUP BY r.company_name
             ORDER BY total_amount DESC`,
             [id]
         );
