@@ -289,7 +289,7 @@ function updateStatCard(id, value) {
     }
 }
 
-// Tutar kartları için - sayı büyüdükçe kart yana büyür
+// Tutar kartları için - sayı büyüdükçe kart büyür
 function updateStatCardWithScale(id, amount) {
     const element = document.getElementById(id);
     if (element) {
@@ -300,26 +300,35 @@ function updateStatCardWithScale(id, amount) {
         // Kartın parent'ını bul (stat-card)
         const card = element.closest('.stat-card');
         if (card) {
-            // Tutar büyüklüğüne göre genişlik hesapla
-            let widthMultiplier = 1;
+            // Tutar büyüklüğüne göre stil hesapla
+            let paddingMultiplier = 1;
+            let fontSize = '1rem';
+            
             if (amount >= 10000000) {        // 10M+
-                widthMultiplier = 1.4;
+                paddingMultiplier = 1.5;
+                fontSize = '1.4rem';
             } else if (amount >= 1000000) {  // 1M+
-                widthMultiplier = 1.3;
+                paddingMultiplier = 1.3;
+                fontSize = '1.3rem';
             } else if (amount >= 100000) {   // 100K+
-                widthMultiplier = 1.2;
+                paddingMultiplier = 1.2;
+                fontSize = '1.2rem';
             }
             
-            // Kartın genişliğini artır (scale değil, width)
-            if (widthMultiplier > 1) {
-                card.style.flex = `0 0 calc(${100 / 4}% * ${widthMultiplier})`;
-                card.style.maxWidth = `calc(${100 / 4}% * ${widthMultiplier})`;
+            // Kartın padding ve font-size'ını artır
+            if (paddingMultiplier > 1) {
+                card.style.padding = `${2 * paddingMultiplier}rem`;
+                card.style.transform = `scale(${paddingMultiplier})`;
+                element.style.fontSize = fontSize;
+                element.style.fontWeight = '700';
             } else {
-                card.style.flex = '';
-                card.style.maxWidth = '';
+                card.style.padding = '';
+                card.style.transform = '';
+                element.style.fontSize = '';
+                element.style.fontWeight = '';
             }
-            card.style.transition = 'flex 0.5s ease, max-width 0.5s ease';
-            card.style.zIndex = widthMultiplier > 1 ? '10' : '1';
+            card.style.transition = 'all 0.5s ease';
+            card.style.zIndex = paddingMultiplier > 1 ? '10' : '1';
         }
         
         // Animasyon
