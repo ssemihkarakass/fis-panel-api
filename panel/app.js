@@ -289,7 +289,7 @@ function updateStatCard(id, value) {
     }
 }
 
-// Tutar kartları için - sayı büyüdükçe kart büyür
+// Tutar kartları için - sayı büyüdükçe kart yana büyür
 function updateStatCardWithScale(id, amount) {
     const element = document.getElementById(id);
     if (element) {
@@ -300,20 +300,20 @@ function updateStatCardWithScale(id, amount) {
         // Kartın parent'ını bul (stat-card)
         const card = element.closest('.stat-card');
         if (card) {
-            // Tutar büyüklüğüne göre scale hesapla
-            let scale = 1;
+            // Tutar büyüklüğüne göre genişlik hesapla
+            let scaleX = 1;
             if (amount >= 10000000) {        // 10M+
-                scale = 1.3;
+                scaleX = 1.3;
             } else if (amount >= 1000000) {  // 1M+
-                scale = 1.2;
+                scaleX = 1.2;
             } else if (amount >= 100000) {   // 100K+
-                scale = 1.1;
+                scaleX = 1.1;
             }
             
-            // Scale uygula
-            card.style.transform = `scale(${scale})`;
+            // Sadece X ekseninde scale (yana büyüme)
+            card.style.transform = `scaleX(${scaleX})`;
             card.style.transition = 'transform 0.5s ease';
-            card.style.zIndex = scale > 1 ? '10' : '1';
+            card.style.zIndex = scaleX > 1 ? '10' : '1';
         }
         
         // Animasyon
