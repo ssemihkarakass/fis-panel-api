@@ -88,7 +88,7 @@ app.get('/health', async (req, res) => {
 
 app.post('/api/license/check', async (req, res) => {
     try {
-        const { license_key, hardware_id, pc_name, os_info, app_version } = req.body;
+        const { license_key, hardware_id, pc_name, os_info, app_version, is_closing } = req.body;
 
         if (!license_key || !hardware_id) {
             return res.status(400).json({ 
@@ -167,10 +167,12 @@ app.post('/api/license/check', async (req, res) => {
             userId = insertResult.rows[0].id;
         } else {
             userId = userResult.rows[0].id;
+            // Eğer uygulama kapanıyorsa offline yap
+            const onlineStatus = is_closing ? false : true;
             await pool.query(
-                `UPDATE users SET last_seen = NOW(), is_online = TRUE, pc_name = $1, os_info = $2, app_version = $3 
-                 WHERE id = $4`,
-                [pc_name, os_info, app_version, userId]
+                `UPDATE users SET last_seen = NOW(), is_online = $1, pc_name = $2, os_info = $3, app_version = $4 
+                 WHERE id = $5`,
+                [onlineStatus, pc_name, os_info, app_version, userId]
             );
         }
 
@@ -462,6 +464,22 @@ app.get('/api/admin/users', authenticateToken, async (req, res) => {
     } catch (error) {
         console.error('Kullanıcı listesi hatası:', error);
         res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Kullanıcı sil
+app.delete('/api/admin/users/:id', authenticateToken, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Kullanıcıyı sil (CASCADE ile ilişkili kayıtlar da silinir)
+        await pool.query('DELETE FROM users WHERE id = $1', [id]);
+
+        res.json({ success: true, message: 'Kullanıcı silindi' });
+
+    } catch (error) {
+        console.error('Kullanıcı silme hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası: ' + error.message });
     }
 });
 

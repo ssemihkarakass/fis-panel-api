@@ -363,6 +363,11 @@ async function loadUsers() {
                 <td>${user.total_receipts || 0}</td>
                 <td>${formatCurrency(user.total_amount || 0)}</td>
                 <td>${formatDateTime(user.last_seen)}</td>
+                <td>
+                    <button class="btn btn-sm btn-danger" onclick="window.deleteUser(${user.id}, '${user.pc_name}')">
+                        <span class="material-icons" style="font-size: 1rem;">delete</span> Sil
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -635,6 +640,32 @@ async function viewLicenseDetail(licenseId) {
 }
 
 window.viewLicenseDetail = viewLicenseDetail;
+
+// Delete user
+async function deleteUser(userId, pcName) {
+    if (!confirm(`"${pcName}" kullanıcısını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetchAPI(`/api/admin/users/${userId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.success) {
+            alert('✅ Kullanıcı silindi!');
+            loadUsers();
+            loadDashboard();
+        } else {
+            alert('❌ Silme hatası: ' + response.error);
+        }
+    } catch (error) {
+        console.error('Delete user error:', error);
+        alert('❌ Kullanıcı silinemedi');
+    }
+}
+
+window.deleteUser = deleteUser;
 
 // Global license ID for modal actions
 let currentLicenseId = null;
