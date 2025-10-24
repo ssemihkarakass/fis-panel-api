@@ -401,27 +401,49 @@
             <!-- SESSIONS PAGE -->
             <div id="page-sessions" class="page">
                 <div class="page-header">
-                    <h1>Oturumlar</h1>
-                    <p>Kullanıcı oturumları ve detayları</p>
+                    <h1>Oturumlar ve Aktiviteler</h1>
+                    <p>Detaylı oturum takibi</p>
                 </div>
 
-                <div class="table-card">
-                    <table id="sessions-table">
-                        <thead>
-                            <tr>
-                                <th>PC Adı</th>
-                                <th>Başlangıç</th>
-                                <th>Bitiş</th>
-                                <th>Fiş Sayısı</th>
-                                <th>Toplam Tutar</th>
-                                <th>Durum</th>
-                                <th>İşlemler</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td colspan="7" style="text-align: center; padding: 40px;">Yükleniyor...</td></tr>
-                        </tbody>
-                    </table>
+                <div style="display: grid; grid-template-columns: 250px 1fr 400px; gap: 20px; height: calc(100vh - 200px);">
+                    <!-- SOL: FİLTRELER -->
+                    <div class="table-card" style="overflow-y: auto;">
+                        <h3 style="margin-bottom: 15px;">Filtreler</h3>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Lisans Seç</label>
+                            <select id="filter-license" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <option value="">Tüm Lisanslar</option>
+                            </select>
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #2d3748;">Kullanıcı Seç</label>
+                            <select id="filter-user" style="width: 100%; padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px;">
+                                <option value="">Tüm Kullanıcılar</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary" onclick="filterSessions()" style="width: 100%;">Filtrele</button>
+                    </div>
+
+                    <!-- ORTA: OTURUMLAR LİSTESİ -->
+                    <div class="table-card" style="overflow-y: auto;">
+                        <h3 style="margin-bottom: 15px;">Oturumlar</h3>
+                        <div id="sessions-list" style="max-height: calc(100vh - 300px); overflow-y: auto;">
+                            <div style="text-align: center; padding: 40px; color: #999;">Yükleniyor...</div>
+                        </div>
+                    </div>
+
+                    <!-- SAĞ: OTURUM DETAYI -->
+                    <div class="table-card" style="overflow-y: auto;">
+                        <h3 style="margin-bottom: 15px;">Oturum Detayı</h3>
+                        <div id="session-detail-panel">
+                            <div style="text-align: center; padding: 40px; color: #999;">
+                                Bir oturum seçin
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

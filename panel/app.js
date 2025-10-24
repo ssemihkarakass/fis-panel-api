@@ -1072,40 +1072,228 @@ function getActionText(actionType) {
 // SESSIONS
 // ===================================
 
+let allSessions = [];
+let currentSessionId = null;
+
 async function loadSessions() {
     try {
-        const response = await fetchAPI('/api/admin/sessions');
-        const sessions = response.data;
-        
-        const tbody = document.querySelector('#sessions-table tbody');
-        tbody.innerHTML = '';
-        
-        if (sessions && sessions.length > 0) {
-            sessions.forEach(session => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${session.pc_name || '-'}</td>
-                    <td>${formatDateTime(session.session_start)}</td>
-                    <td>${session.session_end ? formatDateTime(session.session_end) : '-'}</td>
-                    <td>${session.total_receipts || 0}</td>
-                    <td>${formatCurrency(session.total_amount || 0)}</td>
-                    <td><span class="badge badge-${session.status === 'active' ? 'success' : 'secondary'}">${session.status === 'active' ? 'Aktif' : 'Bitti'}</span></td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="window.viewSessionDetail(${session.id})">
-                            <span class="material-icons" style="font-size: 1rem;">visibility</span> Detay
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
+        // Lisansları yükle
+        const licensesRes = await fetchAPI('/api/admin/licenses');
+        const filterLicense = document.getElementById('filter-license');
+        if (filterLicense) {
+            filterLicense.innerHTML = '<option value="">Tüm Lisanslar</option>';
+            licensesRes.data.forEach(license => {
+                filterLicense.innerHTML += `<option value="${license.id}">${license.company_name} (${license.license_key.substring(0, 15)}...)</option>`;
             });
-        } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #999;">Henüz oturum yok</td></tr>';
         }
+
+        // Kullanıcıları yükle
+        const usersRes = await fetchAPI('/api/admin/users');
+        const filterUser = document.getElementById('filter-user');
+        if (filterUser) {
+            filterUser.innerHTML = '<option value="">Tüm Kullanıcılar</option>';
+            usersRes.data.forEach(user => {
+                filterUser.innerHTML += `<option value="${user.id}">${user.pc_name}</option>`;
+            });
+        }
+
+        // Oturumları yükle
+        const response = await fetchAPI('/api/admin/sessions');
+        allSessions = response.data;
+        
+        displaySessions(allSessions);
         
     } catch (error) {
         console.error('Sessions load error:', error);
-        const tbody = document.querySelector('#sessions-table tbody');
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #f56565;">Yükleme hatası!</td></tr>';
+        const container = document.getElementById('sessions-list');
+        if (container) {
+            container.innerHTML = '<div style="text-align: center; padding: 40px; color: #f56565;">Yükleme hatası!</div>';
+        }
+    }
+}
+
+function displaySessions(sessions) {
+    const container = document.getElementById('sessions-list');
+    if (!container) return;
+    
+    if (sessions && sessions.length > 0) {
+        container.innerHTML = sessions.map(session => `
+            <div onclick="selectSession(${session.id})" style="
+                padding: 15px;
+                margin-bottom: 10px;
+                border: 2px solid ${currentSessionId === session.id ? '#667eea' : '#e2e8f0'};
+                border-radius: 8px;
+                cursor: pointer;
+                background: ${currentSessionId === session.id ? '#f7fafc' : 'white'};
+                transition: all 0.3s;
+            " onmouseover="this.style.borderColor='#667eea'" onmouseout="if(${currentSessionId} !== ${session.id}) this.style.borderColor='#e2e8f0'">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="color: #2d3748;">${session.pc_name || 'Bilinmeyen'}</strong>
+                    <span class="badge badge-${session.status === 'active' ? 'success' : 'secondary'}" style="font-size: 11px;">
+                        ${session.status === 'active' ? '🟢 Aktif' : '⚫ Bitti'}
+                    </span>
+                </div>
+                <div style="font-size: 13px; color: #718096; margin-bottom: 5px;">
+                    📅 ${formatDateTime(session.session_start)}
+                </div>
+                <div style="display: flex; gap: 15px; font-size: 13px; color: #4a5568;">
+                    <span>🧾 ${session.total_receipts || 0} fiş</span>
+                    <span>💰 ${formatCurrency(session.total_amount || 0)}</span>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        container.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Oturum bulunamadı</div>';
+    }
+}
+
+function filterSessions() {
+    const licenseId = document.getElementById('filter-license').value;
+    const userId = document.getElementById('filter-user').value;
+    
+    let filtered = allSessions;
+    
+    if (licenseId) {
+        filtered = filtered.filter(s => s.license_id == licenseId);
+    }
+    
+    if (userId) {
+        filtered = filtered.filter(s => s.user_id == userId);
+    }
+    
+    displaySessions(filtered);
+}
+
+function selectSession(sessionId) {
+    currentSessionId = sessionId;
+    displaySessions(allSessions.filter(s => {
+        const licenseId = document.getElementById('filter-license').value;
+        const userId = document.getElementById('filter-user').value;
+        return (!licenseId || s.license_id == licenseId) && (!userId || s.user_id == userId);
+    }));
+    loadSessionDetail(sessionId);
+}
+
+async function loadSessionDetail(sessionId) {
+    const panel = document.getElementById('session-detail-panel');
+    if (!panel) return;
+    
+    panel.innerHTML = '<div style="text-align: center; padding: 40px; color: #999;">Yükleniyor...</div>';
+    
+    try {
+        const response = await fetchAPI(`/api/admin/sessions/${sessionId}/details`);
+        
+        if (response.success) {
+            const session = response.session;
+            const companies = response.companies;
+            const activities = response.activities;
+            
+            let html = `
+                <div style="padding: 15px;">
+                    <!-- Oturum Bilgileri -->
+                    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="color: #2d3748; margin-bottom: 10px;">📊 Oturum #${sessionId}</h4>
+                        <div style="font-size: 13px; color: #4a5568; line-height: 1.8;">
+                            <div><strong>PC:</strong> ${session.pc_name}</div>
+                            <div><strong>Başlangıç:</strong> ${formatDateTime(session.session_start)}</div>
+                            <div><strong>Bitiş:</strong> ${session.session_end ? formatDateTime(session.session_end) : '🟢 Devam ediyor'}</div>
+                            <div><strong>Toplam Fiş:</strong> ${session.total_receipts || 0}</div>
+                            <div><strong>Toplam Tutar:</strong> ${formatCurrency(session.total_amount || 0)}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Firmalar ve Fişler -->
+                    <h4 style="color: #2d3748; margin-bottom: 10px;">🏢 Firmalar</h4>
+            `;
+            
+            if (companies && companies.length > 0) {
+                companies.forEach(company => {
+                    html += `
+                        <div style="background: white; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <strong style="color: #667eea;">${company.company_name}</strong>
+                                <span style="font-size: 12px; color: #718096;">${company.receipt_count} fiş</span>
+                            </div>
+                            <div style="font-size: 13px; color: #4a5568;">
+                                💰 ${formatCurrency(company.total_amount)}
+                            </div>
+                            <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                                Fiş No: ${company.first_receipt} - ${company.last_receipt}
+                            </div>
+                            
+                            <!-- Fişler Detayı -->
+                            <details style="margin-top: 10px;">
+                                <summary style="cursor: pointer; color: #667eea; font-size: 12px;">Fişleri Göster</summary>
+                                <div style="margin-top: 10px; max-height: 200px; overflow-y: auto;">
+                    `;
+                    
+                    if (company.receipts && company.receipts.length > 0) {
+                        company.receipts.forEach(receipt => {
+                            html += `
+                                <div style="padding: 8px; background: #f7fafc; border-radius: 4px; margin-bottom: 5px; font-size: 12px;">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <span>🧾 ${receipt.receipt_no}</span>
+                                        <span style="font-weight: 600;">${formatCurrency(receipt.amount)}</span>
+                                    </div>
+                                    <div style="color: #718096; font-size: 11px;">
+                                        KDV %${receipt.vat_rate}: ${formatCurrency(receipt.vat_amount)}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+                    
+                    html += `
+                                </div>
+                            </details>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div style="text-align: center; padding: 20px; color: #999;">Bu oturumda fiş kesilmemiş</div>';
+            }
+            
+            // Aktiviteler
+            html += `
+                <h4 style="color: #2d3748; margin: 20px 0 10px 0;">📋 Aktiviteler</h4>
+                <div style="max-height: 300px; overflow-y: auto;">
+            `;
+            
+            if (activities && activities.length > 0) {
+                activities.forEach(activity => {
+                    const actionClass = getActionClass(activity.action_type);
+                    const actionText = getActionText(activity.action_type);
+                    
+                    html += `
+                        <div style="padding: 10px; background: #f7fafc; border-left: 3px solid ${actionClass === 'success' ? '#48bb78' : actionClass === 'danger' ? '#f56565' : '#4299e1'}; border-radius: 4px; margin-bottom: 8px; font-size: 12px;">
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                                <span class="badge badge-${actionClass}" style="font-size: 11px;">${actionText}</span>
+                                <span style="color: #718096;">${new Date(activity.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</span>
+                            </div>
+                            <div style="color: #4a5568;">${activity.action_details || '-'}</div>
+                        </div>
+                    `;
+                });
+            } else {
+                html += '<div style="text-align: center; padding: 20px; color: #999;">Aktivite yok</div>';
+            }
+            
+            html += `
+                </div>
+                
+                <!-- Excel Export -->
+                <button class="btn btn-success" onclick="exportSessionExcel(${sessionId})" style="width: 100%; margin-top: 20px;">
+                    📊 Excel'e Aktar
+                </button>
+            </div>
+            `;
+            
+            panel.innerHTML = html;
+        }
+        
+    } catch (error) {
+        console.error('Session detail error:', error);
+        panel.innerHTML = '<div style="text-align: center; padding: 40px; color: #f56565;">Yükleme hatası!</div>';
     }
 }
 
