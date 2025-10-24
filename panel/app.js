@@ -1077,12 +1077,16 @@ let currentSessionId = null;
 
 async function loadSessions() {
     try {
-        // Lisansları yükle
+        // Lisansları yükle ve sırala
         const licensesRes = await fetchAPI('/api/admin/licenses');
         const filterLicense = document.getElementById('filter-license');
         if (filterLicense) {
             filterLicense.innerHTML = '<option value="">Tüm Lisanslar</option>';
-            licensesRes.data.forEach(license => {
+            // Alfabetik sırala
+            const sortedLicenses = licensesRes.data.sort((a, b) => 
+                (a.company_name || '').localeCompare(b.company_name || '')
+            );
+            sortedLicenses.forEach(license => {
                 filterLicense.innerHTML += `<option value="${license.id}">${license.company_name} (${license.license_key.substring(0, 15)}...)</option>`;
             });
         }
@@ -1121,22 +1125,22 @@ function displaySessions(sessions) {
             <div onclick="selectSession(${session.id})" style="
                 padding: 15px;
                 margin-bottom: 10px;
-                border: 2px solid ${currentSessionId === session.id ? '#667eea' : '#e2e8f0'};
+                border: 2px solid ${currentSessionId === session.id ? '#667eea' : '#2d3748'};
                 border-radius: 8px;
                 cursor: pointer;
-                background: ${currentSessionId === session.id ? '#f7fafc' : 'white'};
+                background: ${currentSessionId === session.id ? '#1a202c' : '#2d3748'};
                 transition: all 0.3s;
-            " onmouseover="this.style.borderColor='#667eea'" onmouseout="if(${currentSessionId} !== ${session.id}) this.style.borderColor='#e2e8f0'">
+            " onmouseover="this.style.borderColor='#667eea'; this.style.background='#1a202c'" onmouseout="if(${currentSessionId} !== ${session.id}) { this.style.borderColor='#2d3748'; this.style.background='#2d3748' }">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <strong style="color: #2d3748;">${session.pc_name || 'Bilinmeyen'}</strong>
+                    <strong style="color: #e2e8f0;">${session.pc_name || 'Bilinmeyen'}</strong>
                     <span class="badge badge-${session.status === 'active' ? 'success' : 'secondary'}" style="font-size: 11px;">
                         ${session.status === 'active' ? '🟢 Aktif' : '⚫ Bitti'}
                     </span>
                 </div>
-                <div style="font-size: 13px; color: #718096; margin-bottom: 5px;">
+                <div style="font-size: 13px; color: #a0aec0; margin-bottom: 5px;">
                     📅 ${formatDateTime(session.session_start)}
                 </div>
-                <div style="display: flex; gap: 15px; font-size: 13px; color: #4a5568;">
+                <div style="display: flex; gap: 15px; font-size: 13px; color: #cbd5e0;">
                     <span>🧾 ${session.total_receipts || 0} fiş</span>
                     <span>💰 ${formatCurrency(session.total_amount || 0)}</span>
                 </div>
@@ -1191,33 +1195,33 @@ async function loadSessionDetail(sessionId) {
             let html = `
                 <div style="padding: 15px;">
                     <!-- Oturum Bilgileri -->
-                    <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                        <h4 style="color: #2d3748; margin-bottom: 10px;">📊 Oturum #${sessionId}</h4>
-                        <div style="font-size: 13px; color: #4a5568; line-height: 1.8;">
-                            <div><strong>PC:</strong> ${session.pc_name}</div>
-                            <div><strong>Başlangıç:</strong> ${formatDateTime(session.session_start)}</div>
-                            <div><strong>Bitiş:</strong> ${session.session_end ? formatDateTime(session.session_end) : '🟢 Devam ediyor'}</div>
-                            <div><strong>Toplam Fiş:</strong> ${session.total_receipts || 0}</div>
-                            <div><strong>Toplam Tutar:</strong> ${formatCurrency(session.total_amount || 0)}</div>
+                    <div style="background: #1a202c; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #2d3748;">
+                        <h4 style="color: #e2e8f0; margin-bottom: 10px;">📊 Oturum #${sessionId}</h4>
+                        <div style="font-size: 13px; color: #cbd5e0; line-height: 1.8;">
+                            <div><strong style="color: #a0aec0;">PC:</strong> ${session.pc_name}</div>
+                            <div><strong style="color: #a0aec0;">Başlangıç:</strong> ${formatDateTime(session.session_start)}</div>
+                            <div><strong style="color: #a0aec0;">Bitiş:</strong> ${session.session_end ? formatDateTime(session.session_end) : '🟢 Devam ediyor'}</div>
+                            <div><strong style="color: #a0aec0;">Toplam Fiş:</strong> ${session.total_receipts || 0}</div>
+                            <div><strong style="color: #a0aec0;">Toplam Tutar:</strong> <span style="color: #48bb78; font-weight: 600;">${formatCurrency(session.total_amount || 0)}</span></div>
                         </div>
                     </div>
                     
                     <!-- Firmalar ve Fişler -->
-                    <h4 style="color: #2d3748; margin-bottom: 10px;">🏢 Firmalar</h4>
+                    <h4 style="color: #e2e8f0; margin-bottom: 10px;">🏢 Firmalar</h4>
             `;
             
             if (companies && companies.length > 0) {
                 companies.forEach(company => {
                     html += `
-                        <div style="background: white; border: 1px solid #e2e8f0; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
+                        <div style="background: #1a202c; border: 1px solid #2d3748; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                                 <strong style="color: #667eea;">${company.company_name}</strong>
-                                <span style="font-size: 12px; color: #718096;">${company.receipt_count} fiş</span>
+                                <span style="font-size: 12px; color: #a0aec0;">${company.receipt_count} fiş</span>
                             </div>
-                            <div style="font-size: 13px; color: #4a5568;">
+                            <div style="font-size: 13px; color: #48bb78; font-weight: 600;">
                                 💰 ${formatCurrency(company.total_amount)}
                             </div>
-                            <div style="font-size: 12px; color: #718096; margin-top: 5px;">
+                            <div style="font-size: 12px; color: #a0aec0; margin-top: 5px;">
                                 Fiş No: ${company.first_receipt} - ${company.last_receipt}
                             </div>
                             
@@ -1229,14 +1233,16 @@ async function loadSessionDetail(sessionId) {
                     
                     if (company.receipts && company.receipts.length > 0) {
                         company.receipts.forEach(receipt => {
+                            const matrah = receipt.amount - receipt.vat_amount;
                             html += `
-                                <div style="padding: 8px; background: #f7fafc; border-radius: 4px; margin-bottom: 5px; font-size: 12px;">
-                                    <div style="display: flex; justify-content: space-between;">
+                                <div style="padding: 8px; background: #2d3748; border-radius: 4px; margin-bottom: 5px; font-size: 12px; color: #e2e8f0;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 3px;">
                                         <span>🧾 ${receipt.receipt_no}</span>
-                                        <span style="font-weight: 600;">${formatCurrency(receipt.amount)}</span>
+                                        <span style="font-weight: 600; color: #48bb78;">${formatCurrency(receipt.amount)}</span>
                                     </div>
-                                    <div style="color: #718096; font-size: 11px;">
-                                        KDV %${receipt.vat_rate}: ${formatCurrency(receipt.vat_amount)}
+                                    <div style="color: #a0aec0; font-size: 11px; display: flex; justify-content: space-between;">
+                                        <span>Matrah: ${formatCurrency(matrah)}</span>
+                                        <span>KDV %${receipt.vat_rate}: ${formatCurrency(receipt.vat_amount)}</span>
                                     </div>
                                 </div>
                             `;
@@ -1255,7 +1261,7 @@ async function loadSessionDetail(sessionId) {
             
             // Aktiviteler
             html += `
-                <h4 style="color: #2d3748; margin: 20px 0 10px 0;">📋 Aktiviteler</h4>
+                <h4 style="color: #e2e8f0; margin: 20px 0 10px 0;">📋 Aktiviteler</h4>
                 <div style="max-height: 300px; overflow-y: auto;">
             `;
             
@@ -1265,17 +1271,17 @@ async function loadSessionDetail(sessionId) {
                     const actionText = getActionText(activity.action_type);
                     
                     html += `
-                        <div style="padding: 10px; background: #f7fafc; border-left: 3px solid ${actionClass === 'success' ? '#48bb78' : actionClass === 'danger' ? '#f56565' : '#4299e1'}; border-radius: 4px; margin-bottom: 8px; font-size: 12px;">
+                        <div style="padding: 10px; background: #1a202c; border-left: 3px solid ${actionClass === 'success' ? '#48bb78' : actionClass === 'danger' ? '#f56565' : '#4299e1'}; border-radius: 4px; margin-bottom: 8px; font-size: 12px;">
                             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                                 <span class="badge badge-${actionClass}" style="font-size: 11px;">${actionText}</span>
-                                <span style="color: #718096;">${new Date(activity.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</span>
+                                <span style="color: #a0aec0;">${new Date(activity.created_at).toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit'})}</span>
                             </div>
-                            <div style="color: #4a5568;">${activity.action_details || '-'}</div>
+                            <div style="color: #cbd5e0;">${activity.action_details || '-'}</div>
                         </div>
                     `;
                 });
             } else {
-                html += '<div style="text-align: center; padding: 20px; color: #999;">Aktivite yok</div>';
+                html += '<div style="text-align: center; padding: 20px; color: #718096;">Aktivite yok</div>';
             }
             
             html += `
