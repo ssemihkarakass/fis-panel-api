@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fiş Yönetim Paneli</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- GİRİŞ EKRANI -->
+    <div id="login-screen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>🖨️ Fiş Yönetim Paneli</h1>
+                <p>Lisans ve İstatistik Yönetimi</p>
+            </div>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="username">Kullanıcı Adı</label>
+                    <input type="text" id="username" required autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="password">Şifre</label>
+                    <input type="password" id="password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary">Giriş Yap</button>
+                <div id="login-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ANA PANEL -->
+    <div id="main-panel" class="panel-container" style="display: none;">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🖨️ Fiş Panel</h2>
+                <p id="user-info"></p>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <span class="icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-page="licenses">
+                    <span class="icon">🔑</span>
+                    <span>Lisanslar</span>
+                </a>
+                <a href="#" class="nav-item" data-page="users">
+                    <span class="icon">👥</span>
+                    <span>Kullanıcılar</span>
+                </a>
+                <a href="#" class="nav-item" data-page="receipts">
+                    <span class="icon">🧾</span>
+                    <span>Fişler</span>
+                </a>
+                <a href="#" class="nav-item" data-page="stats">
+                    <span class="icon">📈</span>
+                    <span>İstatistikler</span>
+                </a>
+                <a href="#" class="nav-item" data-page="settings">
+                    <span class="icon">⚙️</span>
+                    <span>Ayarlar</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <button id="logout-btn" class="btn btn-secondary">Çıkış Yap</button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <!-- DASHBOARD PAGE -->
+            <div id="page-dashboard" class="page active">
+                <div class="page-header">
+                    <h1>Dashboard</h1>
+                    <p>Genel Bakış ve Özetler</p>
+                </div>
+
+                <!-- İSTATİSTİK KARTLARI -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🔑</div>
+                        <div class="stat-info">
+                            <h3 id="total-licenses">0</h3>
+                            <p>Toplam Lisans</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-info">
+                            <h3 id="active-licenses">0</h3>
+                            <p>Aktif Lisans</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">👥</div>
+                        <div class="stat-info">
+                            <h3 id="total-users">0</h3>
+                            <p>Toplam Kullanıcı</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🟢</div>
+                        <div class="stat-info">
+                            <h3 id="online-users">0</h3>
+                            <p>Online Kullanıcı</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🧾</div>
+                        <div class="stat-info">
+                            <h3 id="today-receipts">0</h3>
+                            <p>Bugün Kesilen Fiş</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💰</div>
+                        <div class="stat-info">
+                            <h3 id="today-amount">0 ₺</h3>
+                            <p>Bugünkü Ciro</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-info">
+                            <h3 id="month-receipts">0</h3>
+                            <p>Bu Ay Kesilen Fiş</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">💵</div>
+                        <div class="stat-info">
+                            <h3 id="month-amount">0 ₺</h3>
+                            <p>Aylık Ciro</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GRAFİKLER -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Son 7 Gün - Fiş Sayısı</h3>
+                        <canvas id="chart-receipts"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Son 7 Gün - Ciro</h3>
+                        <canvas id="chart-amount"></canvas>
+                    </div>
+                </div>
+
+                <!-- SON AKTİVİTELER -->
+                <div class="activity-card">
+                    <h3>Son Aktiviteler</h3>
+                    <div id="recent-activity" class="activity-list">
+                        <!-- Dinamik olarak doldurulacak -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- LICENSES PAGE -->
+            <div id="page-licenses" class="page">
+                <div class="page-header">
+                    <h1>Lisans Yönetimi</h1>
+                    <button id="create-license-btn" class="btn btn-primary">+ Yeni Lisans Oluştur</button>
+                </div>
+
+                <div class="table-card">
+                    <table id="licenses-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Lisans Anahtarı</th>
+                                <th>Şirket</th>
+                                <th>Durum</th>
+                                <th>Kalan Gün</th>
+                                <th>Aktif Cihaz</th>
+                                <th>Oluşturulma</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dinamik olarak doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- USERS PAGE -->
+            <div id="page-users" class="page">
+                <div class="page-header">
+                    <h1>Kullanıcılar (PC'ler)</h1>
+                </div>
+
+                <div class="table-card">
+                    <table id="users-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>PC Adı</th>
+                                <th>Lisans</th>
+                                <th>Durum</th>
+                                <th>Toplam Fiş</th>
+                                <th>Toplam Ciro</th>
+                                <th>Son Görülme</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dinamik olarak doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- RECEIPTS PAGE -->
+            <div id="page-receipts" class="page">
+                <div class="page-header">
+                    <h1>Fişler</h1>
+                    <button id="export-excel-btn" class="btn btn-success">📊 Excel'e Aktar</button>
+                </div>
+
+                <!-- FİLTRELER -->
+                <div class="filters-card">
+                    <div class="filter-group">
+                        <label>Başlangıç Tarihi</label>
+                        <input type="date" id="filter-start-date">
+                    </div>
+                    <div class="filter-group">
+                        <label>Bitiş Tarihi</label>
+                        <input type="date" id="filter-end-date">
+                    </div>
+                    <div class="filter-group">
+                        <label>Lisans</label>
+                        <select id="filter-license">
+                            <option value="">Tümü</option>
+                        </select>
+                    </div>
+                    <button id="apply-filters-btn" class="btn btn-primary">Filtrele</button>
+                </div>
+
+                <div class="table-card">
+                    <table id="receipts-table" class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Tarih</th>
+                                <th>Fiş No</th>
+                                <th>Şirket</th>
+                                <th>Tutar</th>
+                                <th>KDV</th>
+                                <th>Açıklama</th>
+                                <th>Kasiyer</th>
+                                <th>PC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Dinamik olarak doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- STATS PAGE -->
+            <div id="page-stats" class="page">
+                <div class="page-header">
+                    <h1>Detaylı İstatistikler</h1>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h3>Aylık Fiş Dağılımı</h3>
+                        <canvas id="chart-monthly"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Şirket Bazlı Dağılım</h3>
+                        <canvas id="chart-companies"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS PAGE -->
+            <div id="page-settings" class="page">
+                <div class="page-header">
+                    <h1>Ayarlar</h1>
+                </div>
+
+                <div class="settings-card">
+                    <h3>API Ayarları</h3>
+                    <div class="form-group">
+                        <label>API URL</label>
+                        <input type="text" id="api-url" value="https://api.yoursite.com">
+                    </div>
+                    <button class="btn btn-primary">Kaydet</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- YENİ LİSANS MODAL -->
+    <div id="create-license-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Yeni Lisans Oluştur</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Şirket Adı</label>
+                    <input type="text" id="new-company-name" required>
+                </div>
+                <div class="form-group">
+                    <label>E-posta</label>
+                    <input type="email" id="new-contact-email">
+                </div>
+                <div class="form-group">
+                    <label>Telefon</label>
+                    <input type="tel" id="new-contact-phone">
+                </div>
+                <div class="form-group">
+                    <label>Süre (Gün)</label>
+                    <input type="number" id="new-days" value="365" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Maksimum Cihaz</label>
+                    <input type="number" id="new-max-devices" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Notlar</label>
+                    <textarea id="new-notes" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="create-license-confirm" class="btn btn-primary">Oluştur</button>
+                <button class="btn btn-secondary modal-close">İptal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- LİSANS DETAY MODAL -->
+    <div id="license-detail-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Lisans Detayları</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="license-detail-content">
+                <!-- Dinamik içerik -->
+            </div>
+            <div class="modal-footer">
+                <button id="add-days-btn" class="btn btn-success">+ Gün Ekle</button>
+                <button id="suspend-license-btn" class="btn btn-warning">Askıya Al</button>
+                <button class="btn btn-secondary modal-close">Kapat</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
