@@ -268,17 +268,35 @@ app.post('/api/receipt/log', async (req, res) => {
 
         // Detaylı aktivite logu ekle (session_id opsiyonel)
         if (session_id) {
-            await pool.query(
-                `INSERT INTO detailed_activity_logs (session_id, user_id, license_id, action_type, action_details, company_name, receipt_no, amount)
-                 VALUES ($1, $2, $3, 'receipt_print', $4, $5, $6, $7)`,
-                [session_id, userId, licenseId, `Fiş kesildi: ${receipt_no}`, company_name, receipt_no, amount]
+            // Session ID var mı kontrol et
+            const sessionCheck = await pool.query(
+                'SELECT id FROM session_logs WHERE id = $1',
+                [session_id]
             );
             
-            // Oturum istatistiklerini güncelle
-            await pool.query(
-                `UPDATE session_logs SET total_receipts = total_receipts + 1, total_amount = total_amount + $1 WHERE id = $2`,
-                [amount, session_id]
-            );
+            if (sessionCheck.rows.length > 0) {
+                // Session var - log ekle
+                await pool.query(
+                    `INSERT INTO detailed_activity_logs (session_id, user_id, license_id, action_type, action_details, company_name, receipt_no, amount)
+                     VALUES ($1, $2, $3, 'receipt_print', $4, $5, $6, $7)`,
+                    [session_id, userId, licenseId, `Fiş kesildi: ${receipt_no}`, company_name, receipt_no, amount]
+                );
+                
+                // Oturum istatistiklerini güncelle
+                await pool.query(
+                    `UPDATE session_logs SET total_receipts = total_receipts + 1, total_amount = total_amount + $1 WHERE id = $2`,
+                    [amount, session_id]
+                );
+                console.log('✅ Session log güncellendi');
+            } else {
+                // Session yok - session_id olmadan log ekle
+                console.log('⚠️ Session ID bulunamadı, session_id olmadan log ekleniyor');
+                await pool.query(
+                    `INSERT INTO detailed_activity_logs (user_id, license_id, action_type, action_details, company_name, receipt_no, amount)
+                     VALUES ($1, $2, 'receipt_print', $3, $4, $5, $6)`,
+                    [userId, licenseId, `Fiş kesildi: ${receipt_no}`, company_name, receipt_no, amount]
+                );
+            }
         } else {
             // Session ID yoksa sadece log ekle
             await pool.query(
