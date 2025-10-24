@@ -768,6 +768,60 @@ app.get('/api/admin/dashboard/today', authenticateToken, async (req, res) => {
     }
 });
 
+// Aktiviteler listesi
+app.get('/api/admin/activities', authenticateToken, async (req, res) => {
+    try {
+        const limit = req.query.limit || 100;
+
+        const activitiesResult = await pool.query(
+            `SELECT 
+                dal.*,
+                u.pc_name
+            FROM detailed_activity_logs dal
+            LEFT JOIN users u ON dal.user_id = u.id
+            ORDER BY dal.created_at DESC
+            LIMIT $1`,
+            [limit]
+        );
+
+        res.json({
+            success: true,
+            data: activitiesResult.rows
+        });
+
+    } catch (error) {
+        console.error('Aktiviteler yükleme hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
+// Oturumlar listesi
+app.get('/api/admin/sessions', authenticateToken, async (req, res) => {
+    try {
+        const sessionsResult = await pool.query(
+            `SELECT 
+                sl.*,
+                u.pc_name,
+                l.license_key,
+                l.company_name as license_company
+            FROM session_logs sl
+            LEFT JOIN users u ON sl.user_id = u.id
+            LEFT JOIN licenses l ON sl.license_id = l.id
+            ORDER BY sl.session_start DESC
+            LIMIT 100`
+        );
+
+        res.json({
+            success: true,
+            data: sessionsResult.rows
+        });
+
+    } catch (error) {
+        console.error('Oturumlar yükleme hatası:', error);
+        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+    }
+});
+
 // Oturum detayları - Hangi firmalar, ne kadar kesildi
 app.get('/api/admin/sessions/:id/details', authenticateToken, async (req, res) => {
     try {
