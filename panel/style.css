@@ -661,6 +661,15 @@ body {
     display: block;
     color: white !important;
     font-style: normal;
+    font-family: 'Font Awesome 6 Free', 'Font Awesome 6 Pro', 'FontAwesome';
+    font-weight: 900;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fallback - eğer icon yüklenmezse emoji göster */
+.stat-icon-wrapper i::before {
+    font-size: 2rem;
 }
 
 .stat-info {
