@@ -459,20 +459,75 @@ body {
 }
 
 .sidebar-header {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
 }
 
-.sidebar-header h2 {
-    font-size: 1.5rem;
+/* Logo Section */
+.sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-icon {
+    font-size: 2.5rem;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0.75rem;
+    border-radius: 12px;
+}
+
+.logo-text h2 {
+    font-size: 1.25rem;
     font-weight: 700;
-    margin-bottom: 0.25rem;
+    margin: 0;
+    color: var(--text-primary);
 }
 
-.sidebar-header p {
-    font-size: 0.875rem;
-    opacity: 0.9;
+.logo-text p {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* User Section */
+.sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-hover);
+    border-radius: 12px;
+    transition: var(--transition);
+}
+
+.sidebar-user:hover {
+    background: var(--bg-card);
+}
+
+.user-icon {
+    font-size: 2.5rem;
+    color: #10b981;
+}
+
+.user-info {
+    flex: 1;
+}
+
+.user-name {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
 }
 
 .sidebar-nav {
@@ -535,6 +590,33 @@ body {
 .sidebar-footer {
     padding: 1.5rem;
     border-top: 1px solid var(--border);
+}
+
+.btn-logout {
+    width: 100%;
+    padding: 0.875rem 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 12px;
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-logout:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+    transform: translateY(-2px);
+}
+
+.btn-logout .material-icons {
+    font-size: 1.25rem;
 }
 
 /* ===================================
@@ -651,15 +733,15 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 2rem;
-    background: currentColor;
-    color: white !important;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(10px);
     flex-shrink: 0;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
 }
 
 .stat-icon-wrapper .material-icons {
     font-size: 2.5rem;
-    color: white !important;
+    color: currentColor !important;
     display: block;
     line-height: 1;
 }

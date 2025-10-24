@@ -75,37 +75,52 @@
         <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h2>🖨️ Fiş Panel</h2>
-                <p id="user-info"></p>
+                <div class="sidebar-logo">
+                    <span class="material-icons logo-icon">receipt_long</span>
+                    <div class="logo-text">
+                        <h2>Fiş Panel</h2>
+                        <p>Yönetim Sistemi</p>
+                    </div>
+                </div>
+                <div class="sidebar-user">
+                    <span class="material-icons user-icon">account_circle</span>
+                    <div class="user-info">
+                        <p class="user-name" id="user-info">Admin</p>
+                        <span class="user-role">Yönetici</span>
+                    </div>
+                </div>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="nav-item active" data-page="dashboard">
-                    <i class="fas fa-chart-line icon"></i>
+                    <span class="material-icons icon">dashboard</span>
                     <span>Dashboard</span>
                 </a>
                 <a href="#" class="nav-item" data-page="licenses">
-                    <i class="fas fa-key icon"></i>
+                    <span class="material-icons icon">vpn_key</span>
                     <span>Lisanslar</span>
                 </a>
                 <a href="#" class="nav-item" data-page="users">
-                    <i class="fas fa-users icon"></i>
+                    <span class="material-icons icon">group</span>
                     <span>Kullanıcılar</span>
                 </a>
                 <a href="#" class="nav-item" data-page="receipts">
-                    <i class="fas fa-receipt icon"></i>
+                    <span class="material-icons icon">receipt_long</span>
                     <span>Fişler</span>
                 </a>
                 <a href="#" class="nav-item" data-page="stats">
-                    <i class="fas fa-chart-bar icon"></i>
+                    <span class="material-icons icon">bar_chart</span>
                     <span>İstatistikler</span>
                 </a>
                 <a href="#" class="nav-item" data-page="settings">
-                    <i class="fas fa-cog icon"></i>
+                    <span class="material-icons icon">settings</span>
                     <span>Ayarlar</span>
                 </a>
             </nav>
             <div class="sidebar-footer">
-                <button id="logout-btn" class="btn btn-secondary">Çıkış Yap</button>
+                <button id="logout-btn" class="btn-logout">
+                    <span class="material-icons">logout</span>
+                    <span>Çıkış Yap</span>
+                </button>
             </div>
         </aside>
 
