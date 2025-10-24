@@ -213,8 +213,6 @@ function navigateToPage(pageName) {
             break;
     }
 }
-
-// ===================================
 // DASHBOARD
 // ===================================
 
@@ -222,14 +220,16 @@ async function loadDashboard() {
     try {
         console.log('Loading dashboard...');
         
-        // Load stats
-        const [licenses, users, receipts] = await Promise.all([
+        // Load stats - YENİ: Bugünkü fişler endpoint'i ekledik
+        const [licenses, users, receipts, todayData] = await Promise.all([
             fetchAPI('/api/admin/licenses'),
             fetchAPI('/api/admin/users'),
-            fetchAPI('/api/admin/stats/daily?start_date=2024-01-01&end_date=2099-12-31')
+            fetchAPI('/api/admin/stats/daily?start_date=2024-01-01&end_date=2099-12-31'),
+            fetchAPI('/api/admin/dashboard/today').catch(() => ({ today: { total_receipts: 0, total_amount: 0 }, active_sessions: 0 }))
         ]);
         
         console.log('Data loaded:', { licenses: licenses.data.length, users: users.data.length });
+        console.log('Bugünkü data:', todayData);
         
         // Update stat cards
         updateStatCard('total-licenses', licenses.data.length);
@@ -237,11 +237,17 @@ async function loadDashboard() {
         updateStatCard('total-users', users.data.length);
         updateStatCard('online-users', users.data.filter(u => u.is_online).length);
         
-        // Calculate today's stats
-        const today = new Date().toISOString().split('T')[0];
-        const todayStats = receipts.data.find(r => r.stat_date === today) || { receipts: 0, amount: 0 };
-        updateStatCard('today-receipts', todayStats.receipts || 0);
-        updateStatCard('today-amount', formatCurrency(todayStats.amount || 0));
+        // Bugünkü fişler - YENİ endpoint'ten al
+        if (todayData.today) {
+            updateStatCard('today-receipts', todayData.today.total_receipts || 0);
+            updateStatCard('today-amount', formatCurrency(todayData.today.total_amount || 0));
+        } else {
+            // Fallback: Eski yöntem
+            const today = new Date().toISOString().split('T')[0];
+            const todayStats = receipts.data.find(r => r.stat_date === today) || { receipts: 0, amount: 0 };
+            updateStatCard('today-receipts', todayStats.receipts || 0);
+            updateStatCard('today-amount', formatCurrency(todayStats.amount || 0));
+        }
         
         // Calculate month stats
         const thisMonth = new Date().toISOString().slice(0, 7);
