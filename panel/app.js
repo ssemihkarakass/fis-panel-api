@@ -315,15 +315,15 @@ function updateStatCardWithScale(id, amount) {
                 fontSize = '1.2rem';
             }
             
-            // Kartın padding ve font-size'ını artır
+            // Sadece padding-left/right ve font-size artır (yükseklik sabit)
             if (paddingMultiplier > 1) {
-                card.style.padding = `${2 * paddingMultiplier}rem`;
-                card.style.transform = `scale(${paddingMultiplier})`;
+                card.style.paddingLeft = `${2 * paddingMultiplier}rem`;
+                card.style.paddingRight = `${2 * paddingMultiplier}rem`;
                 element.style.fontSize = fontSize;
                 element.style.fontWeight = '700';
             } else {
-                card.style.padding = '';
-                card.style.transform = '';
+                card.style.paddingLeft = '';
+                card.style.paddingRight = '';
                 element.style.fontSize = '';
                 element.style.fontWeight = '';
             }
