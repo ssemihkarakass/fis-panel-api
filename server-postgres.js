@@ -425,7 +425,7 @@ app.delete('/api/admin/licenses/:id', authenticateToken, async (req, res) => {
         const { id } = req.params;
 
         // Önce ilişkili kayıtları kontrol et
-        const [users] = await pool.query(
+        const users = await pool.query(
             'SELECT COUNT(*) as count FROM users WHERE license_id = $1',
             [id]
         );
@@ -444,7 +444,7 @@ app.delete('/api/admin/licenses/:id', authenticateToken, async (req, res) => {
 
     } catch (error) {
         console.error('Lisans silme hatası:', error);
-        res.status(500).json({ success: false, error: 'Sunucu hatası' });
+        res.status(500).json({ success: false, error: 'Sunucu hatası: ' + error.message });
     }
 });
 

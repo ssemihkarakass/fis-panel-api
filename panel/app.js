@@ -220,12 +220,16 @@ function navigateToPage(pageName) {
 
 async function loadDashboard() {
     try {
+        console.log('Loading dashboard...');
+        
         // Load stats
         const [licenses, users, receipts] = await Promise.all([
             fetchAPI('/api/admin/licenses'),
             fetchAPI('/api/admin/users'),
             fetchAPI('/api/admin/stats/daily?start_date=2024-01-01&end_date=2099-12-31')
         ]);
+        
+        console.log('Data loaded:', { licenses: licenses.data.length, users: users.data.length });
         
         // Update stat cards
         updateStatCard('total-licenses', licenses.data.length);
